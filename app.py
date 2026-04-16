@@ -130,7 +130,7 @@ if os.path.exists(logo2):
         st.image(logo2, width=180)
 
 # ---------- Header ----------
-st.title("JMU Scissor Member Stress App")
+st.title("JMU Engineering Theater Capstone Stress Analysis App")
 st.caption("Purple and gold engineering analysis tool")
 
 # ---------- Cross-member reference image just below title/description ----------
