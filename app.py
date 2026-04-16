@@ -116,10 +116,10 @@ logo2 = "logo2.png"
 if os.path.exists(logo1):
     st.sidebar.image(logo1, use_container_width=True)
 
-if os.path.exists(logo2):
-    left, center, right = st.sidebar.columns([1, 3, 1])
-    with center:
-        st.image(logo2, width=200)
+#if os.path.exists(logo2):
+    #left, center, right = st.sidebar.columns([1, 3, 1])
+    #with center:
+        #st.image(logo2, width=200)
 
 # ---------- Header ----------
 st.title("JMU Scissor Member Stress App")
