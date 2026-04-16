@@ -14,13 +14,17 @@ from logic import (
     length_from_m,
 )
 
-st.set_page_config(page_title="JMU Scissor Member Stress App", layout="wide")
+st.set_page_config(
+    page_title="Engineering Theater Capstone Stress Analysis App",
+    layout="wide"
+)
 
-# ---------- Theme / Font ----------
+# ---------- Theme / Fonts ----------
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cherry+Cream+Soda&family=Faculty+Glyphic&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cherry+Cream+Soda&family=Inter:wght@400;600;700;800&display=swap');
 
+/* Base font */
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
@@ -29,10 +33,19 @@ html, body, [class*="css"] {
     background: linear-gradient(to bottom, #f8f6f2 0%, #fffaf0 100%);
 }
 
-/* Headers */
-h1, h2, h3 {
+/* Main title */
+h1 {
     color: #450084;
-    font-family: 'Inter', sans-serif !important;
+    font-family: 'Cherry Cream Soda', system-ui !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.5px;
+}
+
+/* Section headers */
+h2, h3 {
+    color: #450084;
+    font-family: 'Cherry Cream Soda', system-ui !important;
+    font-weight: 400 !important;
 }
 
 /* General text */
@@ -50,9 +63,18 @@ section[data-testid="stSidebar"] * {
     color: white !important;
 }
 
+/* Sidebar headers */
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3 {
+    font-family: 'Cherry Cream Soda', system-ui !important;
+    color: white !important;
+}
+
 /* Sidebar selectboxes */
 section[data-testid="stSidebar"] div[data-baseweb="select"] * {
     color: black !important;
+    font-family: 'Inter', sans-serif !important;
 }
 
 section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
@@ -85,6 +107,7 @@ ul[role="listbox"] li,
 div[role="option"] {
     color: black !important;
     background-color: white !important;
+    font-family: 'Inter', sans-serif !important;
 }
 
 /* Metric cards */
@@ -100,12 +123,14 @@ div[role="option"] {
 input {
     border: 2px solid #c99700 !important;
     border-radius: 8px !important;
+    font-family: 'Inter', sans-serif !important;
 }
 
 /* Labels */
 label {
     color: #450084 !important;
     font-weight: 700;
+    font-family: 'Inter', sans-serif !important;
 }
 
 /* Tables */
@@ -129,14 +154,29 @@ if os.path.exists(logo2):
     with center:
         st.image(logo2, width=180)
 
-# ---------- Header ----------
-st.title("Engineering Theater Capstone Stress Analysis App")
-st.caption("Purple and gold engineering analysis tool")
+# ---------- Centered Header ----------
+col_left, col_center, col_right = st.columns([1, 6, 1])
 
-# ---------- Cross-member reference image just below title/description ----------
-crossmember_img = "crossmember.png"
-if os.path.exists(crossmember_img):
-    st.image(crossmember_img, width = 750)
+with col_center:
+    st.markdown("""
+        <h1 style='text-align:center; margin-bottom:0.2rem;'>
+        Engineering Theater Capstone Stress Analysis App
+        </h1>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <p style='text-align:center;
+                  font-size:1.05rem;
+                  color:#666;
+                  margin-top:0;
+                  margin-bottom:1rem;
+                  font-family:"Cherry Cream Soda", system-ui;'>
+        Purple and gold engineering analysis tool
+        </p>
+    """, unsafe_allow_html=True)
+
+    if os.path.exists("crossmember.png"):
+        st.image("crossmember.png", use_container_width=True)
 
 # ---------- Sidebar Units ----------
 st.sidebar.header("Unit settings")
@@ -176,7 +216,7 @@ with col2:
             2: "2 - Overturning moment about Z (Mz)",
             6: "6 - Overturning moment about X (Mx)",
             7: "7 - Overturning moment about Y (My)",
-        }[x],
+        }[x]
     )
 
     P_val = Mz_val = Mx_val = My_val = dep_val = 0.0
@@ -216,7 +256,7 @@ with c3:
 with c4:
     SF_target = st.number_input("Target SF", value=1.20, min_value=0.0001, format="%.3f")
 
-# ---------- Run ----------
+# ---------- Run Analysis ----------
 try:
     b_m = convert_length_to_m(b_val, length_unit)
     h_m = convert_length_to_m(h_val, length_unit)
@@ -271,12 +311,10 @@ try:
 
     st.subheader("Results")
 
-    a, b, c = st.columns(3)
+    a, bcol, c = st.columns(3)
     a.metric("Von Mises", f"{stress_from_Pa(results['solid_sigma_vm'], stress_unit):.3f} {stress_unit}")
-    b.metric("Safety Factor", f"{results['solid_SF']:.3f}")
+    bcol.metric("Safety Factor", f"{results['solid_SF']:.3f}")
     c.metric("Status", "YIELDS" if results["solid_yields"] else "OK")
-
-    st.caption("Using original-script defaults: Kt_M = 2.0 and Kt_tau = 2.0")
 
     rows = []
     for r in results["tube_rows"]:
@@ -307,20 +345,6 @@ try:
         )
 
         st.altair_chart(chart, use_container_width=True)
-
-    viable_rows = []
-    for r in results["tube_viable"]:
-        viable_rows.append({
-            f"t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
-            "mass (kg)": round(r["mass_kg"], 4),
-            "SF": round(r["SF"], 4),
-        })
-
-    st.subheader("Viable Options")
-    if viable_rows:
-        st.dataframe(pd.DataFrame(viable_rows), use_container_width=True, hide_index=True)
-    else:
-        st.info("No options meet target safety factor.")
 
 except Exception as e:
     st.error(f"Error: {e}")
