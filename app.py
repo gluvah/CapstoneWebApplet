@@ -24,7 +24,7 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cherry+Cream+Soda&family=Inter:wght@400;600;700;800&display=swap');
 
-/* Base font */
+/* Base font for everything */
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
@@ -33,19 +33,11 @@ html, body, [class*="css"] {
     background: linear-gradient(to bottom, #f8f6f2 0%, #fffaf0 100%);
 }
 
-/* Main title */
-h1 {
+/* Keep all normal headers as Inter */
+h1, h2, h3 {
     color: #450084;
-    font-family: 'Cherry Cream Soda', system-ui !important;
-    font-weight: 400 !important;
-    letter-spacing: 0.5px;
-}
-
-/* Section headers */
-h2, h3 {
-    color: #450084;
-    font-family: 'Cherry Cream Soda', system-ui !important;
-    font-weight: 400 !important;
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 700 !important;
 }
 
 /* General text */
@@ -63,14 +55,6 @@ section[data-testid="stSidebar"] * {
     color: white !important;
 }
 
-/* Sidebar headers */
-section[data-testid="stSidebar"] h1,
-section[data-testid="stSidebar"] h2,
-section[data-testid="stSidebar"] h3 {
-    font-family: 'Cherry Cream Soda', system-ui !important;
-    color: white !important;
-}
-
 /* Sidebar selectboxes */
 section[data-testid="stSidebar"] div[data-baseweb="select"] * {
     color: black !important;
@@ -84,7 +68,7 @@ section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
     box-shadow: none !important;
 }
 
-/* Remove cursor artifacts from selectboxes */
+/* Remove cursor artifacts */
 div[data-baseweb="select"] input {
     caret-color: transparent !important;
     color: transparent !important;
@@ -119,7 +103,7 @@ div[role="option"] {
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 
-/* Number inputs */
+/* Inputs */
 input {
     border: 2px solid #c99700 !important;
     border-radius: 8px !important;
@@ -159,18 +143,24 @@ col_left, col_center, col_right = st.columns([1, 6, 1])
 
 with col_center:
     st.markdown("""
-        <h1 style='text-align:center; margin-bottom:0.2rem;'>
+        <h1 style='
+            text-align:center;
+            margin-bottom:0.2rem;
+            color:#450084;
+            font-family:"Cherry Cream Soda", system-ui;
+            font-weight:400;'>
         Engineering Theater Capstone Stress Analysis App
         </h1>
     """, unsafe_allow_html=True)
 
     st.markdown("""
-        <p style='text-align:center;
-                  font-size:1.05rem;
-                  color:#666;
-                  margin-top:0;
-                  margin-bottom:1rem;
-                  font-family:"Cherry Cream Soda", system-ui;'>
+        <p style='
+            text-align:center;
+            font-size:1.05rem;
+            color:#666;
+            margin-top:0;
+            margin-bottom:1rem;
+            font-family:"Cherry Cream Soda", system-ui;'>
         Purple and gold engineering analysis tool
         </p>
     """, unsafe_allow_html=True)
@@ -232,16 +222,6 @@ with col2:
         My_val = st.number_input("Moment My", value=100.0, min_value=0.0, format="%.4f")
         dep_val = st.number_input("Spacing dep", value=6.0, min_value=0.0001, format="%.4f")
 
-    st.subheader("Cross Bracing")
-    use_cb = st.checkbox("Include cross bracing", value=False)
-
-    cb_outer_val = cb_len_val = cb_t_val = None
-
-    if use_cb:
-        cb_outer_val = st.number_input("Cross-brace outer width/height", value=1.0, min_value=0.0001, format="%.4f")
-        cb_len_val = st.number_input("Cross-brace length", value=18.0, min_value=0.0001, format="%.4f")
-        cb_t_val = st.number_input("Cross-brace wall thickness", value=0.065, min_value=0.0001, format="%.4f")
-
 # ---------- Sweep ----------
 st.subheader("Tube Sweep")
 
@@ -256,7 +236,7 @@ with c3:
 with c4:
     SF_target = st.number_input("Target SF", value=1.20, min_value=0.0001, format="%.3f")
 
-# ---------- Run Analysis ----------
+# ---------- Run ----------
 try:
     b_m = convert_length_to_m(b_val, length_unit)
     h_m = convert_length_to_m(h_val, length_unit)
@@ -272,10 +252,6 @@ try:
     Mx_Nm = convert_moment_to_Nm(Mx_val, moment_unit) if sit == 6 else 0.0
     My_Nm = convert_moment_to_Nm(My_val, moment_unit) if sit == 7 else 0.0
     dep_m = convert_length_to_m(dep_val, length_unit) if sit in [6, 7] else 0.0
-
-    cb_outer_m = convert_length_to_m(cb_outer_val, length_unit) if use_cb else None
-    cb_len_m = convert_length_to_m(cb_len_val, length_unit) if use_cb else None
-    cb_t_m = convert_length_to_m(cb_t_val, length_unit) if use_cb else None
 
     tube_t_min_m = convert_length_to_m(tube_t_min_val, length_unit)
     tube_t_max_m = convert_length_to_m(tube_t_max_val, length_unit)
@@ -300,9 +276,6 @@ try:
         Mx_Nm=Mx_Nm,
         My_Nm=My_Nm,
         dep_m=dep_m,
-        cb_outer_m=cb_outer_m,
-        cb_len_m=cb_len_m,
-        cb_t_m=cb_t_m,
         tube_t_min_m=tube_t_min_m,
         tube_t_max_m=tube_t_max_m,
         tube_t_step_m=tube_t_step_m,
@@ -315,36 +288,6 @@ try:
     a.metric("Von Mises", f"{stress_from_Pa(results['solid_sigma_vm'], stress_unit):.3f} {stress_unit}")
     bcol.metric("Safety Factor", f"{results['solid_SF']:.3f}")
     c.metric("Status", "YIELDS" if results["solid_yields"] else "OK")
-
-    rows = []
-    for r in results["tube_rows"]:
-        rows.append({
-            f"t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
-            "mass (kg)": round(r["mass_kg"], 4),
-            f"σ_vm ({stress_unit})": round(stress_from_Pa(r["sigma_vm"], stress_unit), 4),
-            "SF": round(r["SF"], 4),
-        })
-
-    if rows:
-        df = pd.DataFrame(rows)
-
-        st.subheader("Tube Candidates")
-        st.dataframe(df, use_container_width=True, hide_index=True)
-
-        x_col = f"t ({length_unit})"
-
-        chart = (
-            alt.Chart(df)
-            .mark_line(point=alt.OverlayMarkDef(size=100, filled=True))
-            .encode(
-                x=alt.X(x_col, title=x_col),
-                y=alt.Y("SF", title="Safety Factor"),
-                tooltip=[x_col, "mass (kg)", f"σ_vm ({stress_unit})", "SF"]
-            )
-            .properties(height=400)
-        )
-
-        st.altair_chart(chart, use_container_width=True)
 
 except Exception as e:
     st.error(f"Error: {e}")
