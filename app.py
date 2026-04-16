@@ -14,7 +14,7 @@ from logic import (
     length_from_m,
 )
 
-st.set_page_config(page_title="JMU Scissor Member Stress App", layout="wide")
+st.set_page_config(page_title="JMU Theater Capstone Scissor Member Analysis App", layout="wide")
 
 # ---------- Theme ----------
 st.markdown("""
