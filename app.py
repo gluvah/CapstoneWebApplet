@@ -19,7 +19,7 @@ st.set_page_config(page_title="JMU Scissor Member Stress App", layout="wide")
 # ---------- Theme / Font ----------
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Faculty+Glyphic&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cherry+Cream+Soda&family=Faculty+Glyphic&display=swap');
 
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
