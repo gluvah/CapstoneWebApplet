@@ -136,7 +136,7 @@ st.caption("Purple and gold engineering analysis tool")
 # ---------- Cross-member reference image just below title/description ----------
 crossmember_img = "crossmember.png"
 if os.path.exists(crossmember_img):
-    st.image(crossmember_img, width = 500)
+    st.image(crossmember_img, width = 750)
 
 # ---------- Sidebar Units ----------
 st.sidebar.header("Unit settings")
