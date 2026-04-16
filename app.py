@@ -14,11 +14,17 @@ from logic import (
     length_from_m,
 )
 
-st.set_page_config(page_title="JMU Theater Capstone Scissor Member Analysis App", layout="wide")
+st.set_page_config(page_title="JMU Scissor Member Stress App", layout="wide")
 
-# ---------- Theme ----------
+# ---------- Theme / Font ----------
 st.markdown("""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+}
+
 .stApp {
     background: linear-gradient(to bottom, #f8f6f2 0%, #fffaf0 100%);
 }
@@ -26,10 +32,12 @@ st.markdown("""
 /* Headers */
 h1, h2, h3 {
     color: #450084;
+    font-family: 'Inter', sans-serif !important;
 }
 
 /* General text */
-p, div, span {
+p, div, span, label {
+    font-family: 'Inter', sans-serif !important;
     color: #222222;
 }
 
@@ -54,7 +62,7 @@ section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
     box-shadow: none !important;
 }
 
-/* Remove cursor artifacts */
+/* Remove cursor artifacts from selectboxes */
 div[data-baseweb="select"] input {
     caret-color: transparent !important;
     color: transparent !important;
@@ -119,11 +127,16 @@ if os.path.exists(logo1):
 if os.path.exists(logo2):
     left, center, right = st.sidebar.columns([1, 3, 1])
     with center:
-        st.image(logo2,  use_container_width=True)
+        st.image(logo2, width=180)
 
 # ---------- Header ----------
-st.title("JMU Theater Capstone Scissor Member Analysis App")
+st.title("JMU Scissor Member Stress App")
 st.caption("Purple and gold engineering analysis tool")
+
+# ---------- Cross-member reference image just below title/description ----------
+crossmember_img = "crossmember.png"
+if os.path.exists(crossmember_img):
+    st.image(crossmember_img, use_container_width=True)
 
 # ---------- Sidebar Units ----------
 st.sidebar.header("Unit settings")
@@ -139,11 +152,11 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("Geometry")
-    b_val = st.number_input("Width (b)", value=3.0, min_value=0.0001, format="%.4f")
-    h_val = st.number_input("Thickness (h)", value=0.25, min_value=0.0001, format="%.4f")
-    L_val = st.number_input("Member span (L)", value=20.0, min_value=0.0001, format="%.4f")
-    d_val = st.number_input("Pin-hole diameter (d)", value=1.0, min_value=0.0, format="%.4f")
-    edge_offset_val = st.number_input("Distance from left edge to left hole (e)", value=0.75, min_value=0.0, format="%.4f")
+    b_val = st.number_input("Width b", value=3.0, min_value=0.0001, format="%.4f")
+    h_val = st.number_input("Thickness h", value=0.25, min_value=0.0001, format="%.4f")
+    L_val = st.number_input("Member span L", value=20.0, min_value=0.0001, format="%.4f")
+    d_val = st.number_input("Pin-hole diameter d", value=1.0, min_value=0.0, format="%.4f")
+    edge_offset_val = st.number_input("Distance from left edge to left hole", value=0.75, min_value=0.0, format="%.4f")
 
     st.subheader("Material")
     rho_val = st.number_input("Material density", value=490.0, min_value=0.0001, format="%.4f")
@@ -263,6 +276,8 @@ try:
     b.metric("Safety Factor", f"{results['solid_SF']:.3f}")
     c.metric("Status", "YIELDS" if results["solid_yields"] else "OK")
 
+    st.caption("Using original-script defaults: Kt_M = 2.0 and Kt_tau = 2.0")
+
     rows = []
     for r in results["tube_rows"]:
         rows.append({
@@ -274,6 +289,7 @@ try:
 
     if rows:
         df = pd.DataFrame(rows)
+
         st.subheader("Tube Candidates")
         st.dataframe(df, use_container_width=True, hide_index=True)
 
@@ -291,6 +307,20 @@ try:
         )
 
         st.altair_chart(chart, use_container_width=True)
+
+    viable_rows = []
+    for r in results["tube_viable"]:
+        viable_rows.append({
+            f"t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
+            "mass (kg)": round(r["mass_kg"], 4),
+            "SF": round(r["SF"], 4),
+        })
+
+    st.subheader("Viable Options")
+    if viable_rows:
+        st.dataframe(pd.DataFrame(viable_rows), use_container_width=True, hide_index=True)
+    else:
+        st.info("No options meet target safety factor.")
 
 except Exception as e:
     st.error(f"Error: {e}")
