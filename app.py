@@ -139,11 +139,11 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("Geometry")
-    b_val = st.number_input("Width b", value=3.0, min_value=0.0001, format="%.4f")
-    h_val = st.number_input("Thickness h", value=0.25, min_value=0.0001, format="%.4f")
-    L_val = st.number_input("Member span L", value=20.0, min_value=0.0001, format="%.4f")
-    d_val = st.number_input("Pin-hole diameter d", value=1.0, min_value=0.0, format="%.4f")
-    edge_offset_val = st.number_input("Distance from left edge to left hole", value=0.75, min_value=0.0, format="%.4f")
+    b_val = st.number_input("Width (b)", value=3.0, min_value=0.0001, format="%.4f")
+    h_val = st.number_input("Thickness (h)", value=0.25, min_value=0.0001, format="%.4f")
+    L_val = st.number_input("Member span (L)", value=20.0, min_value=0.0001, format="%.4f")
+    d_val = st.number_input("Pin-hole diameter (d)", value=1.0, min_value=0.0, format="%.4f")
+    edge_offset_val = st.number_input("Distance from left edge to left hole (e)", value=0.75, min_value=0.0, format="%.4f")
 
     st.subheader("Material")
     rho_val = st.number_input("Material density", value=490.0, min_value=0.0001, format="%.4f")
