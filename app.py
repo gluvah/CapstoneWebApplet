@@ -122,7 +122,7 @@ if os.path.exists(logo2):
         st.image(logo2,  use_container_width=True)
 
 # ---------- Header ----------
-st.title("JMU Scissor Member Stress App")
+st.title("JMU Theater Capstone Scissor Member Analysis App")
 st.caption("Purple and gold engineering analysis tool")
 
 # ---------- Sidebar Units ----------
