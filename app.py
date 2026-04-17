@@ -130,6 +130,16 @@ label {
 .block-container {
     padding-top: 2rem;
 }
+
+/* Slider colors to purple */
+.stSlider [data-baseweb="slider"] [role="slider"] {
+    background-color: #a56de2 !important;
+    border-color: #a56de2 !important;
+}
+
+.stSlider [data-baseweb="slider"] > div > div {
+    background: #c9a3f5 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -167,7 +177,7 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
         ax.plot([0, width], [y1, y0], color=purple, linewidth=1.8)
 
         # Center pin
-        ax.plot([dx], [y0 + dy], marker='o', markersize=3.5, color=gold)
+        ax.plot([dx], [y0 + dy], marker="o", markersize=3.5, color=gold)
 
     # Top platform
     pad = 0.12 * width
@@ -184,7 +194,13 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
 
     ax.set_aspect("equal")
     ax.axis("off")
-    ax.set_title(f"{n_stages} stage(s), θ = {theta_deg}°", fontsize=10, color=purple_dark, pad=6)
+    ax.set_title(
+        f"{n_stages} stage(s), θ = {theta_deg}°",
+        fontsize=10,
+        color=purple_dark,
+        pad=6,
+        loc="center"
+    )
 
     fig.tight_layout(pad=0.3)
     return fig
@@ -323,15 +339,24 @@ with config_left:
         cb_t_val = st.number_input("Cross-brace wall thickness", value=0.065, min_value=0.0001, format="%.4f")
 
 with config_right:
-    st.markdown("<h4 style='text-align:center;'>Live Scissor Visualization</h4>", unsafe_allow_html=True)
+    viz_outer_left, viz_center_col, viz_outer_right = st.columns([1, 3, 1])
 
-    viz_fig = draw_scissor_lift_vertical(n_stages=n, theta_deg=theta_deg)
+    with viz_center_col:
+        st.markdown(
+            """
+            <h4 style='
+                text-align:center;
+                margin-bottom:0.35rem;
+                color:#450084;'>
+                Live Scissor Visualization
+            </h4>
+            """,
+            unsafe_allow_html=True
+        )
 
-    viz_left, viz_center, viz_right = st.columns([1.2, 2.2, 1.2])
-    with viz_center:
+        viz_fig = draw_scissor_lift_vertical(n_stages=n, theta_deg=theta_deg)
         st.pyplot(viz_fig, use_container_width=False)
-
-    plt.close(viz_fig)
+        plt.close(viz_fig)
 
 st.markdown("---")
 
