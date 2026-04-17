@@ -626,8 +626,8 @@ try:
             s_calc = ((b_m**3 - d_m**3) * h_m) / (6.0 * d_m)
             show_step(
                 "6. Section modulus used for bending",
-                r"S=\frac{(b^3-d\,^3)h}{6d}"
-                rf"S=\frac{{({b_m:.6f}^3-{d_m:.6f}^3)({h_m:.6f})}}{{6({d_m:.6f})}}",
+                r"S=\frac{(b^3-d\,^3)h}{6d}",
+                rf"S=\frac{{({b_m:.6f}^3-{d_m:.6f}\,^3)({h_m:.6f})}}{{6({d_m:.6f})}}",
                 rf"S={s_calc:.6f}\ \text{{m}}^3"
             )
 
