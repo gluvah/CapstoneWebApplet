@@ -266,32 +266,37 @@ with col_center:
             margin-top:0;
             margin-bottom:1rem;
             font-family:"Cherry Cream Soda", system-ui;'>
-        Purple and gold engineering analysis tool
+        A transparent analysis tool for evaluating solid-member stresses and exploring lighter tube alternatives.
         </p>
     """, unsafe_allow_html=True)
 
 # ---------- Sidebar Units ----------
-st.sidebar.header("Unit settings")
+st.sidebar.header("Reporting units")
+st.sidebar.caption("These selections control how inputs are entered and how final results are displayed throughout the report.")
 
-length_unit = st.sidebar.selectbox("Length unit", ["in", "mm", "cm", "m"], index=0)
-force_unit = st.sidebar.selectbox("Force unit", ["lbf", "N", "kN", "kip"], index=0)
-moment_unit = st.sidebar.selectbox("Moment unit", ["ft-lb", "Nm", "kNm", "kip-ft"], index=0)
-stress_unit = st.sidebar.selectbox("Stress unit", ["ksi", "MPa", "psi", "Pa"], index=0)
-density_unit = st.sidebar.selectbox("Density unit", ["kg/m3", "g/cm3", "lb/ft3"], index=2)
+length_unit = st.sidebar.selectbox("Length units used throughout the report", ["in", "mm", "cm", "m"], index=0)
+force_unit = st.sidebar.selectbox("Force units for applied loading", ["lbf", "N", "kN", "kip"], index=0)
+moment_unit = st.sidebar.selectbox("Moment units for overturning cases", ["ft-lb", "Nm", "kNm", "kip-ft"], index=0)
+stress_unit = st.sidebar.selectbox("Stress units for displayed results", ["ksi", "MPa", "psi", "Pa"], index=0)
+density_unit = st.sidebar.selectbox("Material density units", ["kg/m3", "g/cm3", "lb/ft3"], index=2)
 
 st.markdown("---")
 
 # ---------- Section 1: Geometry ----------
-st.subheader("Geometry")
+st.subheader("Member Geometry Definition")
+st.caption(
+    "This section defines the baseline cross-member geometry used in the stress analysis. "
+    "These dimensions control both the solid-member check and the tube weight-reduction sweep."
+)
 
 geo_left, geo_right = st.columns([1, 1])
 
 with geo_left:
-    b_val = st.number_input("Width b", value=3.0, min_value=0.0001, format="%.4f")
-    h_val = st.number_input("Thickness h", value=0.25, min_value=0.0001, format="%.4f")
-    L_val = st.number_input("Member span L", value=20.0, min_value=0.0001, format="%.4f")
-    d_val = st.number_input("Pin-hole diameter d", value=1.0, min_value=0.0, format="%.4f")
-    edge_offset_val = st.number_input("Distance from left edge to left hole", value=0.75, min_value=0.0, format="%.4f")
+    b_val = st.number_input("Overall member width, b", value=3.0, min_value=0.0001, format="%.4f")
+    h_val = st.number_input("Member thickness, h", value=0.25, min_value=0.0001, format="%.4f")
+    L_val = st.number_input("Pin-to-pin member span, L", value=20.0, min_value=0.0001, format="%.4f")
+    d_val = st.number_input("Pin-hole diameter, d", value=1.0, min_value=0.0, format="%.4f")
+    edge_offset_val = st.number_input("Distance from left edge to the first hole center", value=0.75, min_value=0.0, format="%.4f")
 
 with geo_right:
     if os.path.exists("crossmember.png"):
@@ -302,34 +307,42 @@ with geo_right:
 st.markdown("---")
 
 # ---------- Section 2: Material ----------
-st.subheader("Material")
+st.subheader("Material Properties")
+st.caption(
+    "These properties define the baseline material behavior used in the analysis. "
+    "Density influences member weight, while yield strength is used to compute the factor of safety."
+)
 
 mat1, mat2 = st.columns(2)
 
 with mat1:
     rho_val = st.number_input("Material density", value=490.0, min_value=0.0001, format="%.4f")
 with mat2:
-    Sy_val = st.number_input("Yield strength", value=36.0, min_value=0.0001, format="%.4f")
+    Sy_val = st.number_input("Material yield strength", value=36.0, min_value=0.0001, format="%.4f")
 
 st.markdown("---")
 
 # ---------- Section 3: Configuration ----------
-st.subheader("Configuration")
+st.subheader("Loading and Lift Configuration")
+st.caption(
+    "This section describes the operating geometry and the loading case being evaluated. "
+    "The selected angle, number of stages, and applied loading determine the internal forces used in the stress calculations."
+)
 
 config_left, config_right = st.columns([1, 1])
 
 with config_left:
-    theta_deg = st.slider("Scissor angle θ", 1, 89, 15)
-    n = st.slider("Stages n", 1, 6, 1)
+    theta_deg = st.slider("Scissor angle, θ", 1, 89, 15)
+    n = st.slider("Number of scissor stages, n", 1, 6, 1)
 
     sit = st.selectbox(
-        "Loading situation",
+        "Loading case to be evaluated",
         options=[1, 2, 6, 7],
         format_func=lambda x: {
-            1: "1 - Centered vertical payload P",
-            2: "2 - Overturning moment about Z (Mz)",
-            6: "6 - Overturning moment about X (Mx)",
-            7: "7 - Overturning moment about Y (My)",
+            1: "1 - Centered vertical payload, P",
+            2: "2 - Overturning moment about the z-axis, Mz",
+            6: "6 - Overturning moment about the x-axis, Mx",
+            7: "7 - Overturning moment about the y-axis, My",
         }[x]
     )
 
@@ -340,18 +353,18 @@ with config_left:
     dep_val = 0.0
 
     if sit == 1:
-        P_val = st.number_input("Payload P", value=225.0, min_value=0.0, format="%.4f")
+        P_val = st.number_input("Applied centered payload, P", value=225.0, min_value=0.0, format="%.4f")
     elif sit == 2:
-        Mz_val = st.number_input("Moment Mz", value=100.0, min_value=0.0, format="%.4f")
+        Mz_val = st.number_input("Applied overturning moment, Mz", value=100.0, min_value=0.0, format="%.4f")
     elif sit == 6:
-        Mx_val = st.number_input("Moment Mx", value=100.0, min_value=0.0, format="%.4f")
-        dep_val = st.number_input("Spacing dep", value=6.0, min_value=0.0001, format="%.4f")
+        Mx_val = st.number_input("Applied overturning moment, Mx", value=100.0, min_value=0.0, format="%.4f")
+        dep_val = st.number_input("Member spacing used for this loading case, dep", value=6.0, min_value=0.0001, format="%.4f")
     elif sit == 7:
-        My_val = st.number_input("Moment My", value=100.0, min_value=0.0, format="%.4f")
-        dep_val = st.number_input("Spacing dep", value=6.0, min_value=0.0001, format="%.4f")
+        My_val = st.number_input("Applied overturning moment, My", value=100.0, min_value=0.0, format="%.4f")
+        dep_val = st.number_input("Member spacing used for this loading case, dep", value=6.0, min_value=0.0001, format="%.4f")
 
-    st.markdown("#### Cross Bracing")
-    use_cb = st.checkbox("Include cross bracing", value=False)
+    st.markdown("#### Cross-bracing assumption")
+    use_cb = st.checkbox("Include the self-weight of cross bracing in the load model", value=False)
 
     cb_outer_val = None
     cb_len_val = None
@@ -359,7 +372,7 @@ with config_left:
 
     if use_cb:
         cb_outer_val = st.number_input("Cross-brace outer width/height", value=1.0, min_value=0.0001, format="%.4f")
-        cb_len_val = st.number_input("Cross-brace length", value=18.0, min_value=0.0001, format="%.4f")
+        cb_len_val = st.number_input("Cross-brace member length", value=18.0, min_value=0.0001, format="%.4f")
         cb_t_val = st.number_input("Cross-brace wall thickness", value=0.065, min_value=0.0001, format="%.4f")
 
 with config_right:
@@ -372,10 +385,15 @@ with config_right:
                 text-align:center;
                 margin:0 0 0.6rem 0;
                 color:#111111;">
-                Live Scissor Visualization
+                Live Scissor Lift Geometry Preview
             </h4>
             """,
             unsafe_allow_html=True
+        )
+
+        st.caption(
+            "This preview shows the current lift geometry based on the selected number of stages "
+            "and scissor angle. It is intended as a quick visual reference for the configuration being analyzed."
         )
 
         viz_fig = draw_scissor_lift_vertical(n_stages=n, theta_deg=theta_deg)
@@ -462,28 +480,44 @@ try:
     solid = results["solid"]
 
     # ---------- Solid results ----------
-    st.subheader("Solid Member Results")
+    st.subheader("Baseline Solid Member Assessment")
+    st.caption(
+        "These results summarize the stress state of the baseline solid member under the selected loading case. "
+        "This section serves as the reference design before exploring lighter tube alternatives."
+    )
 
     m1, m2, m3 = st.columns(3)
-    m1.metric("Von Mises", f"{stress_from_Pa(results['solid_sigma_vm'], stress_unit):.3f} {stress_unit}")
-    m2.metric("Safety Factor", f"{results['solid_SF']:.3f}")
-    m3.metric("Status", "YIELDS" if results["solid_yields"] else "OK")
+    m1.metric("Von Mises stress for the solid member", f"{stress_from_Pa(results['solid_sigma_vm'], stress_unit):.3f} {stress_unit}")
+    m2.metric("Factor of safety for the solid member", f"{results['solid_SF']:.3f}")
+    m3.metric("Baseline solid-member status", "YIELDS" if results["solid_yields"] else "OK")
 
     st.markdown("---")
 
     # ---------- Tube evaluation and sweep ----------
-    st.subheader("Tube Evaluation and Sweep")
+    st.subheader("Tube Evaluation and Weight-Reduction Sweep")
+    st.caption(
+        "This section investigates whether the solid member can be replaced by a lighter tube section while still meeting the desired safety target. "
+        "By sweeping across candidate wall thicknesses, the tool helps identify designs that reduce mass without sacrificing acceptable structural performance."
+    )
+
+    st.markdown(
+        """
+        **Design intent:**  
+        The goal of this sweep is to explore how much weight can be saved by switching from a solid member to a tube geometry.  
+        A lighter member can reduce overall system mass and may also reduce internal loading from self-weight, provided the resulting tube still satisfies the required factor of safety.
+        """
+    )
 
     s1, s2, s3, s4 = st.columns(4)
 
     with s1:
-        tube_t_min_val = st.number_input("Min t", value=0.065, min_value=0.0001, format="%.4f")
+        tube_t_min_val = st.number_input("Minimum candidate tube wall thickness", value=0.065, min_value=0.0001, format="%.4f")
     with s2:
-        tube_t_max_val = st.number_input("Max t", value=0.250, min_value=0.0001, format="%.4f")
+        tube_t_max_val = st.number_input("Maximum candidate tube wall thickness", value=0.250, min_value=0.0001, format="%.4f")
     with s3:
-        tube_t_step_val = st.number_input("Step t", value=0.020, min_value=0.0001, format="%.4f")
+        tube_t_step_val = st.number_input("Tube wall thickness increment for the sweep", value=0.020, min_value=0.0001, format="%.4f")
     with s4:
-        SF_target = st.number_input("Target SF", value=1.20, min_value=0.0001, format="%.3f")
+        SF_target = st.number_input("Required minimum factor of safety", value=1.20, min_value=0.0001, format="%.3f")
 
     tube_t_min_m = convert_length_to_m(tube_t_min_val, length_unit)
     tube_t_max_m = convert_length_to_m(tube_t_max_val, length_unit)
@@ -517,54 +551,66 @@ try:
         SF_target=SF_target,
     )
 
-    st.markdown("#### Tube candidates")
+    st.markdown("#### Tube candidate summary")
+    st.caption(
+        "Each row below represents a candidate tube wall thickness from the sweep. "
+        "The table reports resulting member mass, von Mises stress, and factor of safety so that lighter acceptable designs can be compared directly."
+    )
 
     rows = []
     for r in tube_results["tube_rows"]:
         rows.append({
-            f"t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
-            "mass (kg)": round(r["mass_kg"], 4),
-            f"σ_vm ({stress_unit})": round(stress_from_Pa(r["sigma_vm"], stress_unit), 4),
-            "SF": round(r["SF"], 4),
+            f"Tube wall thickness, t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
+            "Resulting member mass (kg)": round(r["mass_kg"], 4),
+            f"Von Mises stress ({stress_unit})": round(stress_from_Pa(r["sigma_vm"], stress_unit), 4),
+            "Factor of safety": round(r["SF"], 4),
         })
 
     if rows:
         df = pd.DataFrame(rows)
         st.dataframe(df, use_container_width=True, hide_index=True)
 
-        x_col = f"t ({length_unit})"
+        x_col = f"Tube wall thickness, t ({length_unit})"
         chart = (
             alt.Chart(df)
             .mark_line(point=alt.OverlayMarkDef(size=100, filled=True))
             .encode(
                 x=alt.X(x_col, title=x_col),
-                y=alt.Y("SF", title="Safety Factor"),
-                tooltip=[x_col, "mass (kg)", f"σ_vm ({stress_unit})", "SF"]
+                y=alt.Y("Factor of safety", title="Factor of Safety"),
+                tooltip=[x_col, "Resulting member mass (kg)", f"Von Mises stress ({stress_unit})", "Factor of safety"]
             )
             .properties(height=400)
         )
         st.altair_chart(chart, use_container_width=True)
 
-    st.markdown("#### Viable tube options")
+    st.markdown("#### Tube designs that satisfy the safety requirement")
+    st.caption(
+        "This filtered table isolates only the tube options that meet or exceed the required factor of safety. "
+        "These are the candidate designs most useful for reducing weight while maintaining the specified performance threshold."
+    )
 
     viable_rows = []
     for r in tube_results["tube_viable"]:
         viable_rows.append({
-            f"t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
-            "mass (kg)": round(r["mass_kg"], 4),
-            "SF": round(r["SF"], 4),
+            f"Tube wall thickness, t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
+            "Resulting member mass (kg)": round(r["mass_kg"], 4),
+            "Factor of safety": round(r["SF"], 4),
         })
 
     if viable_rows:
         st.dataframe(pd.DataFrame(viable_rows), use_container_width=True, hide_index=True)
     else:
-        st.info("No options meet target safety factor.")
+        st.info("No tube options in the current sweep satisfy the required factor of safety.")
 
     st.markdown("---")
 
     # ---------- Detailed calculations at bottom ----------
-    with st.expander("Detailed calculations", expanded=False):
-        st.markdown("### Step-by-step solid member calculations")
+    with st.expander("Detailed calculations and derivation trail", expanded=False):
+        st.markdown(
+            "### Step-by-step solid member calculations\n"
+            "This appendix-style section shows the mathematical path used to produce the baseline solid-member results. "
+            "Each step is shown in symbolic form, then with substituted values, and finally with the computed result."
+        )
 
         st.markdown("#### Input summary")
         input_df = pd.DataFrame([
@@ -583,15 +629,15 @@ try:
         show_step(
             "1. Hole-to-width ratio",
             r"x=\frac{d}{b}",
-            rf"x=\frac{{{d_val:.2f}}}{{{b_val:.2f}}}",
-            rf"x={x_ratio:.2f}"
+            rf"x=\frac{{{d_val:.6f}}}{{{b_val:.6f}}}",
+            rf"x={x_ratio:.6f}"
         )
 
         show_step(
             "2. Axial stress concentration factor",
             r"K_t=2.95-2.855x+3.410x^2-1.678x^3",
-            rf"K_t=2.95-2.855({x_ratio:.2f})+3.410({x_ratio:.2f})^2-1.678({x_ratio:.2f})^3",
-            rf"K_t={Kt_P:.2f}"
+            rf"K_t=2.95-2.855({x_ratio:.6f})+3.410({x_ratio:.6f})^2-1.678({x_ratio:.6f})^3",
+            rf"K_t={Kt_P:.6f}"
         )
 
         st.markdown("#### 3. Converted SI values")
@@ -630,8 +676,8 @@ try:
         show_step(
             "5. Net area used for axial stress",
             r"A_{net}=(b-d)h",
-            rf"A_{{net}}=({b_m:.2f}-{d_m:.2f})({h_m:.2f})",
-            rf"A_{{net}}={solid['A_net_report']:.2f}\ \text{{m}}^2"
+            rf"A_{{net}}=({b_m:.6f}-{d_m:.6f})({h_m:.6f})",
+            rf"A_{{net}}={solid['A_net_report']:.6f}\ \text{{m}}^2"
         )
 
         if d_m > 0:
@@ -639,67 +685,67 @@ try:
             show_step(
                 "6. Section modulus used for bending",
                 r"S=\frac{(b^3-d\,^3)h}{6d}",
-                rf"S=\frac{{({b_m:.2f}^3-{d_m:.2f}\,^3)({h_m:.2f})}}{{6({d_m:.2f})}}",
-                rf"S={s_calc:.2f}\ \text{{m}}^3"
+                rf"S=\frac{{({b_m:.6f}^3-{d_m:.6f}\,^3)({h_m:.6f})}}{{6({d_m:.6f})}}",
+                rf"S={s_calc:.6f}\ \text{{m}}^3"
             )
 
         axial_force_N = solid["sigma_nom_P"] * solid["A_net_report"]
         show_step(
             "7. Nominal axial stress",
             r"\sigma_{nom,P}=\frac{P}{A_{net}}",
-            rf"\sigma_{{nom,P}}=\frac{{{axial_force_N:.2f}}}{{{solid['A_net_report']:.2f}}}",
-            rf"\sigma_{{nom,P}}={solid['sigma_nom_P']:.2f}\ \text{{Pa}}"
+            rf"\sigma_{{nom,P}}=\frac{{{axial_force_N:.6f}}}{{{solid['A_net_report']:.6f}}}",
+            rf"\sigma_{{nom,P}}={solid['sigma_nom_P']:.6f}\ \text{{Pa}}"
         )
 
         show_step(
             "8. Maximum axial stress",
             r"\sigma_{max,P}=K_t\,\sigma_{nom,P}",
-            rf"\sigma_{{max,P}}=({Kt_P:.2f})({solid['sigma_nom_P']:.2f})",
-            rf"\sigma_{{max,P}}={solid['sigma_max_P']:.2f}\ \text{{Pa}}"
+            rf"\sigma_{{max,P}}=({Kt_P:.6f})({solid['sigma_nom_P']:.6f})",
+            rf"\sigma_{{max,P}}={solid['sigma_max_P']:.6f}\ \text{{Pa}}"
         )
 
         max_moment_Nm = solid["M_abs_max_lbf_in"] * 4.44822 * 0.0254
         show_step(
             "9. Nominal bending stress",
             r"\sigma_{nom,M}=\frac{M}{S}",
-            rf"\sigma_{{nom,M}}=\frac{{{max_moment_Nm:.2f}}}{{{solid['S_report']:.2f}}}",
-            rf"\sigma_{{nom,M}}={solid['sigma_nom_M']:.2f}\ \text{{Pa}}"
+            rf"\sigma_{{nom,M}}=\frac{{{max_moment_Nm:.6f}}}{{{solid['S_report']:.6f}}}",
+            rf"\sigma_{{nom,M}}={solid['sigma_nom_M']:.6f}\ \text{{Pa}}"
         )
 
         show_step(
             "10. Maximum bending stress",
             r"\sigma_{max,M}=K_{t,M}\,\sigma_{nom,M}",
-            rf"\sigma_{{max,M}}=(2.000000)({solid['sigma_nom_M']:.2f})",
-            rf"\sigma_{{max,M}}={solid['sigma_max_M']:.2f}\ \text{{Pa}}"
+            rf"\sigma_{{max,M}}=(2.000000)({solid['sigma_nom_M']:.6f})",
+            rf"\sigma_{{max,M}}={solid['sigma_max_M']:.6f}\ \text{{Pa}}"
         )
 
         show_step(
             "11. Combined normal stress",
             r"\sigma=\sigma_{max,P}+\sigma_{max,M}",
-            rf"\sigma=({solid['sigma_max_P']:.2f})+({solid['sigma_max_M']:.2f})",
-            rf"\sigma={solid['sigma_comb']:.2f}\ \text{{Pa}}"
+            rf"\sigma=({solid['sigma_max_P']:.6f})+({solid['sigma_max_M']:.6f})",
+            rf"\sigma={solid['sigma_comb']:.6f}\ \text{{Pa}}"
         )
 
         max_shear_N = solid["V_abs_max_lbf"] * 4.44822
         show_step(
             "12. Maximum shear stress",
             r"\tau=K_{t,\tau}\left(\frac{V}{A_{shear}}\right)",
-            rf"\tau=(2.000000)\left(\frac{{{max_shear_N:.2f}}}{{{solid['A_shear_m2']:.2f}}}\right)",
-            rf"\tau={solid['tau_max']:.2f}\ \text{{Pa}}"
+            rf"\tau=(2.000000)\left(\frac{{{max_shear_N:.6f}}}{{{solid['A_shear_m2']:.6f}}}\right)",
+            rf"\tau={solid['tau_max']:.6f}\ \text{{Pa}}"
         )
 
         show_step(
             "13. Von Mises stress",
             r"\sigma_{vm}=\sqrt{\sigma^2+3\tau^2}",
-            rf"\sigma_{{vm}}=\sqrt{{({solid['sigma_comb']:.2f})^2+3({solid['tau_max']:.2f})^2}}",
-            rf"\sigma_{{vm}}={results['solid_sigma_vm']:.2f}\ \text{{Pa}}"
+            rf"\sigma_{{vm}}=\sqrt{{({solid['sigma_comb']:.6f})^2+3({solid['tau_max']:.6f})^2}}",
+            rf"\sigma_{{vm}}={results['solid_sigma_vm']:.6f}\ \text{{Pa}}"
         )
 
         show_step(
             "14. Safety factor",
             r"SF=\frac{S_y}{\sigma_{vm}}",
-            rf"SF=\frac{{{Sy_Pa:.2f}}}{{{results['solid_sigma_vm']:.2f}}}",
-            rf"SF={results['solid_SF']:.2f}"
+            rf"SF=\frac{{{Sy_Pa:.6f}}}{{{results['solid_sigma_vm']:.6f}}}",
+            rf"SF={results['solid_SF']:.6f}"
         )
 
         st.markdown("#### 15. Final solid member values")
