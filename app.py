@@ -26,7 +26,6 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cherry+Cream+Soda&family=Roboto:wght@400;500;700&display=swap');
 
-/* Base font */
 html, body, [class*="css"] {
     font-family: 'Roboto', sans-serif;
 }
@@ -35,20 +34,17 @@ html, body, [class*="css"] {
     background: linear-gradient(to bottom, #f8f6f2 0%, #fffaf0 100%);
 }
 
-/* Standard headers stay Roboto */
 h1, h2, h3 {
     color: #450084;
     font-family: 'Roboto', sans-serif !important;
     font-weight: 700 !important;
 }
 
-/* General text */
 p, div, span, label {
     font-family: 'Roboto', sans-serif !important;
     color: #222222;
 }
 
-/* Sidebar */
 section[data-testid="stSidebar"] {
     background: linear-gradient(to bottom, #450084 0%, #5c1a9c 100%);
 }
@@ -57,7 +53,6 @@ section[data-testid="stSidebar"] * {
     color: white !important;
 }
 
-/* Sidebar selectboxes */
 section[data-testid="stSidebar"] div[data-baseweb="select"] * {
     color: black !important;
     font-family: 'Roboto', sans-serif !important;
@@ -70,7 +65,6 @@ section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
     box-shadow: none !important;
 }
 
-/* Remove cursor artifacts from selectboxes */
 div[data-baseweb="select"] input {
     caret-color: transparent !important;
     color: transparent !important;
@@ -88,7 +82,6 @@ div[data-baseweb="select"] *:focus {
     box-shadow: none !important;
 }
 
-/* Dropdown menu */
 ul[role="listbox"] li,
 div[role="option"] {
     color: black !important;
@@ -96,7 +89,6 @@ div[role="option"] {
     font-family: 'Roboto', sans-serif !important;
 }
 
-/* Metric cards */
 [data-testid="metric-container"] {
     border: 2px solid #c99700;
     padding: 12px;
@@ -105,33 +97,28 @@ div[role="option"] {
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 
-/* Inputs */
 input {
     border: 2px solid #c99700 !important;
     border-radius: 8px !important;
     font-family: 'Roboto', sans-serif !important;
 }
 
-/* Labels */
 label {
     color: #450084 !important;
     font-weight: 700;
     font-family: 'Roboto', sans-serif !important;
 }
 
-/* Tables */
 .stDataFrame {
     background-color: white;
     border: 2px solid #c99700;
     border-radius: 10px;
 }
 
-/* Nice section spacing */
 .block-container {
     padding-top: 2rem;
 }
 
-/* Slider colors */
 .stSlider [data-baseweb="slider"] [role="slider"] {
     background-color: #a56de2 !important;
     border-color: #a56de2 !important;
@@ -150,12 +137,8 @@ label {
 
 # ---------- Helper: axial stress concentration factor ----------
 def axial_kt_from_ratio(x: float) -> float:
-    """
-    Axial stress concentration factor polynomial:
-    Kt = 2.95 - 2.855x + 3.410x^2 - 1.678x^3
-    where x = d/b
-    """
     return 2.95 - 2.855 * x + 3.410 * x**2 - 1.678 * x**3
+
 
 # ---------- Helper: live scissor visualization ----------
 def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
@@ -183,7 +166,6 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
 
         ax.plot([0, width], [y0, y1], color=purple, linewidth=1.8)
         ax.plot([0, width], [y1, y0], color=purple, linewidth=1.8)
-
         ax.plot([dx], [y0 + dy], marker="o", markersize=3.5, color=gold)
 
     pad = 0.12 * width
@@ -196,7 +178,6 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
 
     ax.set_xlim(-0.2, width + 0.2)
     ax.set_ylim(-0.1, total_height + 0.25)
-
     ax.set_aspect("equal")
     ax.axis("off")
     ax.set_title(
@@ -209,6 +190,19 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
 
     fig.tight_layout(pad=0.3)
     return fig
+
+
+# ---------- Helper: equation display ----------
+def show_step(title: str, general_eq: str, substituted_eq: str, result_eq: str):
+    st.markdown(f"#### {title}")
+    st.latex(general_eq)
+    st.latex(substituted_eq)
+    st.latex(result_eq)
+
+
+def fmt_unit_value(value: float, unit: str) -> str:
+    return f"{value:.6g} {unit}"
+
 
 # ---------- Sidebar Logos ----------
 logo1 = "logo.png"
@@ -363,8 +357,8 @@ with config_right:
 
 st.markdown("---")
 
-# ---------- Run analysis inputs ----------
 try:
+    # ---------- Convert inputs ----------
     b_m = convert_length_to_m(b_val, length_unit)
     h_m = convert_length_to_m(h_val, length_unit)
     L_m = convert_length_to_m(L_val, length_unit)
@@ -400,15 +394,15 @@ try:
 
     Kt_P = axial_kt_from_ratio(x_ratio)
 
-    # default sweep values converted now so solid results can appear first
+    # ---------- Run once for solid results ----------
     default_tube_t_min_val = 0.065
     default_tube_t_max_val = 0.250
     default_tube_t_step_val = 0.020
     default_SF_target = 1.20
 
-    tube_t_min_m = convert_length_to_m(default_tube_t_min_val, length_unit)
-    tube_t_max_m = convert_length_to_m(default_tube_t_max_val, length_unit)
-    tube_t_step_m = convert_length_to_m(default_tube_t_step_val, length_unit)
+    default_tube_t_min_m = convert_length_to_m(default_tube_t_min_val, length_unit)
+    default_tube_t_max_m = convert_length_to_m(default_tube_t_max_val, length_unit)
+    default_tube_t_step_m = convert_length_to_m(default_tube_t_step_val, length_unit)
 
     results = analyze_system(
         b_m=b_m,
@@ -432,13 +426,15 @@ try:
         cb_outer_m=cb_outer_m,
         cb_len_m=cb_len_m,
         cb_t_m=cb_t_m,
-        tube_t_min_m=tube_t_min_m,
-        tube_t_max_m=tube_t_max_m,
-        tube_t_step_m=tube_t_step_m,
+        tube_t_min_m=default_tube_t_min_m,
+        tube_t_max_m=default_tube_t_max_m,
+        tube_t_step_m=default_tube_t_step_m,
         SF_target=default_SF_target,
     )
 
-    # ---------- Section 4: Solid member results ----------
+    solid = results["solid"]
+
+    # ---------- Solid results ----------
     st.subheader("Solid Member Results")
 
     m1, m2, m3 = st.columns(3)
@@ -446,12 +442,157 @@ try:
     m2.metric("Safety Factor", f"{results['solid_SF']:.3f}")
     m3.metric("Status", "YIELDS" if results["solid_yields"] else "OK")
 
-    st.markdown("#### Computed axial stress concentration factor for solid member")
-    st.write(f"Using d/b = {x_ratio:.4f}, the app computed Kt = {Kt_P:.4f}")
+    with st.expander("Show detailed calculations and intermediate values", expanded=False):
+        st.markdown("### Step-by-step solid member calculations")
+
+        st.markdown("#### Input summary")
+        input_df = pd.DataFrame([
+            {"Quantity": "Width b", "Value": b_val, "Unit": length_unit},
+            {"Quantity": "Thickness h", "Value": h_val, "Unit": length_unit},
+            {"Quantity": "Member span L", "Value": L_val, "Unit": length_unit},
+            {"Quantity": "Hole diameter d", "Value": d_val, "Unit": length_unit},
+            {"Quantity": "Left hole offset", "Value": edge_offset_val, "Unit": length_unit},
+            {"Quantity": "Density", "Value": rho_val, "Unit": density_unit},
+            {"Quantity": "Yield strength", "Value": Sy_val, "Unit": stress_unit},
+            {"Quantity": "Scissor angle θ", "Value": theta_deg, "Unit": "deg"},
+            {"Quantity": "Stages n", "Value": n, "Unit": "-"},
+        ])
+        st.dataframe(input_df, use_container_width=True, hide_index=True)
+
+        show_step(
+            "1. Hole-to-width ratio",
+            r"x=\frac{d}{b}",
+            rf"x=\frac{{{d_val:.6f}}}{{{b_val:.6f}}}",
+            rf"x={x_ratio:.6f}"
+        )
+
+        show_step(
+            "2. Axial stress concentration factor",
+            r"K_t=2.95-2.855x+3.410x^2-1.678x^3",
+            rf"K_t=2.95-2.855({x_ratio:.6f})+3.410({x_ratio:.6f})^2-1.678({x_ratio:.6f})^3",
+            rf"K_t={Kt_P:.6f}"
+        )
+
+        st.markdown("#### 3. Converted SI values")
+        si_df = pd.DataFrame([
+            {"Quantity": "b", "Value": b_m, "Unit": "m"},
+            {"Quantity": "h", "Value": h_m, "Unit": "m"},
+            {"Quantity": "L", "Value": L_m, "Unit": "m"},
+            {"Quantity": "d", "Value": d_m, "Unit": "m"},
+            {"Quantity": "Edge offset", "Value": edge_offset_m, "Unit": "m"},
+            {"Quantity": "Density", "Value": rho_kg_m3, "Unit": "kg/m^3"},
+            {"Quantity": "Yield strength", "Value": Sy_Pa, "Unit": "Pa"},
+            {"Quantity": "P", "Value": P_N_user, "Unit": "N"},
+            {"Quantity": "Mz", "Value": Mz_Nm, "Unit": "N·m"},
+            {"Quantity": "Mx", "Value": Mx_Nm, "Unit": "N·m"},
+            {"Quantity": "My", "Value": My_Nm, "Unit": "N·m"},
+            {"Quantity": "dep", "Value": dep_m, "Unit": "m"},
+        ])
+        st.dataframe(si_df, use_container_width=True, hide_index=True)
+
+        st.markdown("#### 4. Statics results used by the solid member calculation")
+        forces = solid["forces"]
+        statics_df = pd.DataFrame([
+            {"Quantity": "Xt", "Value": forces["Xt"], "Unit": "lbf"},
+            {"Quantity": "Yt", "Value": forces["Yt"], "Unit": "lbf"},
+            {"Quantity": "Xm", "Value": forces["Xm"], "Unit": "lbf"},
+            {"Quantity": "Ym", "Value": forces["Ym"], "Unit": "lbf"},
+            {"Quantity": "Xb", "Value": forces["Xb"], "Unit": "lbf"},
+            {"Quantity": "Yb", "Value": forces["Yb"], "Unit": "lbf"},
+            {"Quantity": "Max |V|", "Value": solid["V_abs_max_lbf"], "Unit": "lbf"},
+            {"Quantity": "Max |M|", "Value": solid["M_abs_max_lbf_in"], "Unit": "lbf·in"},
+            {"Quantity": "Member mass", "Value": solid["mass_kg"], "Unit": "kg"},
+            {"Quantity": "Pin span used", "Value": solid["L_pin_in"], "Unit": "in"},
+        ])
+        st.dataframe(statics_df, use_container_width=True, hide_index=True)
+
+        show_step(
+            "5. Net area used for axial stress",
+            r"A_{net}=(b-d)h",
+            rf"A_{{net}}=({b_m:.6e}-{d_m:.6e})({h_m:.6e})",
+            rf"A_{{net}}={solid['A_net_report']:.6e}\ \text{{m}}^2"
+        )
+
+        # Bending section modulus formula used by logic.py for solid case
+        if d_m > 0:
+            s_calc = ((b_m**3 - d_m**3) * h_m) / (6.0 * d_m)
+            show_step(
+                "6. Section modulus used for bending",
+                r"S=\frac{(b^3-d^3)h}{6d}",
+                rf"S=\frac{{({b_m:.6e}^3-{d_m:.6e}^3)({h_m:.6e})}}{{6({d_m:.6e})}}",
+                rf"S={s_calc:.6e}\ \text{{m}}^3"
+            )
+
+        axial_force_N = solid["sigma_nom_P"] * solid["A_net_report"]
+        show_step(
+            "7. Nominal axial stress",
+            r"\sigma_{nom,P}=\frac{P}{A_{net}}",
+            rf"\sigma_{{nom,P}}=\frac{{{axial_force_N:.6e}}}{{{solid['A_net_report']:.6e}}}",
+            rf"\sigma_{{nom,P}}={solid['sigma_nom_P']:.6e}\ \text{{Pa}}"
+        )
+
+        show_step(
+            "8. Maximum axial stress",
+            r"\sigma_{max,P}=K_t\,\sigma_{nom,P}",
+            rf"\sigma_{{max,P}}=({Kt_P:.6f})({solid['sigma_nom_P']:.6e})",
+            rf"\sigma_{{max,P}}={solid['sigma_max_P']:.6e}\ \text{{Pa}}"
+        )
+
+        max_moment_Nm = solid["M_abs_max_lbf_in"] * 4.44822 * 0.0254
+        show_step(
+            "9. Nominal bending stress",
+            r"\sigma_{nom,M}=\frac{M}{S}",
+            rf"\sigma_{{nom,M}}=\frac{{{max_moment_Nm:.6e}}}{{{solid['S_report']:.6e}}}",
+            rf"\sigma_{{nom,M}}={solid['sigma_nom_M']:.6e}\ \text{{Pa}}"
+        )
+
+        show_step(
+            "10. Maximum bending stress",
+            r"\sigma_{max,M}=K_{t,M}\,\sigma_{nom,M}",
+            rf"\sigma_{{max,M}}=(2.000000)({solid['sigma_nom_M']:.6e})",
+            rf"\sigma_{{max,M}}={solid['sigma_max_M']:.6e}\ \text{{Pa}}"
+        )
+
+        show_step(
+            "11. Combined normal stress",
+            r"\sigma=\sigma_{max,P}+\sigma_{max,M}",
+            rf"\sigma=({solid['sigma_max_P']:.6e})+({solid['sigma_max_M']:.6e})",
+            rf"\sigma={solid['sigma_comb']:.6e}\ \text{{Pa}}"
+        )
+
+        max_shear_N = solid["V_abs_max_lbf"] * 4.44822
+        show_step(
+            "12. Maximum shear stress",
+            r"\tau=K_{t,\tau}\left(\frac{V}{A_{shear}}\right)",
+            rf"\tau=(2.000000)\left(\frac{{{max_shear_N:.6e}}}{{{solid['A_shear_m2']:.6e}}}\right)",
+            rf"\tau={solid['tau_max']:.6e}\ \text{{Pa}}"
+        )
+
+        show_step(
+            "13. Von Mises stress",
+            r"\sigma_{vm}=\sqrt{\sigma^2+3\tau^2}",
+            rf"\sigma_{{vm}}=\sqrt{{({solid['sigma_comb']:.6e})^2+3({solid['tau_max']:.6e})^2}}",
+            rf"\sigma_{{vm}}={results['solid_sigma_vm']:.6e}\ \text{{Pa}}"
+        )
+
+        show_step(
+            "14. Safety factor",
+            r"SF=\frac{S_y}{\sigma_{vm}}",
+            rf"SF=\frac{{{Sy_Pa:.6e}}}{{{results['solid_sigma_vm']:.6e}}}",
+            rf"SF={results['solid_SF']:.6f}"
+        )
+
+        st.markdown("#### 15. Final solid member values")
+        final_df = pd.DataFrame([
+            {"Quantity": "Von Mises stress", "Value": stress_from_Pa(results["solid_sigma_vm"], stress_unit), "Unit": stress_unit},
+            {"Quantity": "Safety factor", "Value": results["solid_SF"], "Unit": "-"},
+            {"Quantity": "Status", "Value": "YIELDS" if results["solid_yields"] else "OK", "Unit": ""},
+        ])
+        st.dataframe(final_df, use_container_width=True, hide_index=True)
 
     st.markdown("---")
 
-    # ---------- Section 5: Tube evaluation and sweep ----------
+    # ---------- Tube evaluation and sweep ----------
     st.subheader("Tube Evaluation and Sweep")
 
     s1, s2, s3, s4 = st.columns(4)
@@ -496,6 +637,15 @@ try:
         tube_t_step_m=tube_t_step_m,
         SF_target=SF_target,
     )
+
+    with st.expander("Show tube sweep setup and details", expanded=False):
+        sweep_df = pd.DataFrame([
+            {"Quantity": "Min t", "Value": tube_t_min_val, "Unit": length_unit},
+            {"Quantity": "Max t", "Value": tube_t_max_val, "Unit": length_unit},
+            {"Quantity": "Step t", "Value": tube_t_step_val, "Unit": length_unit},
+            {"Quantity": "Target safety factor", "Value": SF_target, "Unit": "-"},
+        ])
+        st.dataframe(sweep_df, use_container_width=True, hide_index=True)
 
     st.markdown("#### Tube candidates")
 
