@@ -134,10 +134,10 @@ label {
 """, unsafe_allow_html=True)
 
 # ---------- Helper: live scissor visualization ----------
-def draw_scissor_lift(n_stages: int, theta_deg: float, show_bracing: bool = False):
+def draw_scissor_lift_vertical(n_stages: int, theta_deg: float, show_bracing: bool = False):
     """
-    Draw a simple 2D side-view scissor lift.
-    Each stage is one X made from equal-length members.
+    Draw a vertically stacked scissor lift side view.
+    Each stage is one X stacked above the previous stage.
     """
     theta_deg = max(1, min(89, theta_deg))
     theta = math.radians(theta_deg)
@@ -146,43 +146,53 @@ def draw_scissor_lift(n_stages: int, theta_deg: float, show_bracing: bool = Fals
     dx = member_length * math.cos(theta)
     dy = member_length * math.sin(theta)
 
-    total_width = 2 * n_stages * dx
-    total_height = 2 * dy
+    width = 2 * dx
+    total_height = 2 * n_stages * dy
 
-    fig, ax = plt.subplots(figsize=(8, 4.8))
+    purple = "#5E2CA5"   # similar to your requested shade
+    purple_dark = "#450084"
+    gold = "#C99700"
 
-    # base and platform
-    ax.plot([0, total_width], [0, 0], linewidth=2.5)
-    ax.plot([0, total_width], [total_height, total_height], linewidth=2.5)
+    fig, ax = plt.subplots(figsize=(7.2, 5.2))
 
-    # scissor stages
+    # base
+    ax.plot([0, width], [0, 0], color=purple_dark, linewidth=3)
+
+    # stacked X stages
     for i in range(n_stages):
-        x0 = 2 * i * dx
-        x1 = x0 + 2 * dx
+        y0 = 2 * i * dy
+        y1 = y0 + 2 * dy
 
-        # bottom-left to top-right
-        ax.plot([x0, x1], [0, total_height], linewidth=2.5)
-
-        # top-left to bottom-right
-        ax.plot([x0, x1], [total_height, 0], linewidth=2.5)
+        # diagonals
+        ax.plot([0, width], [y0, y1], color=purple, linewidth=3)
+        ax.plot([0, width], [y1, y0], color=purple, linewidth=3)
 
         # center pin
-        ax.plot([x0 + dx], [dy], marker='o', markersize=5)
+        ax.plot([dx], [y0 + dy], marker='o', markersize=6, color=gold)
 
-    # end pins
-    ax.plot([0, total_width], [0, 0], linestyle='None', marker='o', markersize=5)
-    ax.plot([0, total_width], [total_height, total_height], linestyle='None', marker='o', markersize=5)
+        # side pins
+        ax.plot([0, width], [y0, y0], linestyle='None', marker='o', markersize=5, color=purple_dark)
+        ax.plot([0, width], [y1, y1], linestyle='None', marker='o', markersize=5, color=purple_dark)
 
-    # optional cross-bracing visual cue
-    if show_bracing and n_stages > 1:
-        ax.plot([0, total_width], [0, total_height], linestyle='--', linewidth=1.6)
-        ax.plot([0, total_width], [total_height, 0], linestyle='--', linewidth=1.6)
+    # top platform
+    platform_pad = 0.15 * width
+    ax.plot(
+        [-platform_pad, width + platform_pad],
+        [total_height, total_height],
+        color=purple_dark,
+        linewidth=4
+    )
+
+    # optional cross-bracing cue
+    if show_bracing:
+        ax.plot([0, width], [0, total_height], color=purple, linestyle='--', linewidth=1.8, alpha=0.6)
+        ax.plot([width, 0], [0, total_height], color=purple, linestyle='--', linewidth=1.8, alpha=0.6)
 
     ax.set_aspect('equal')
-    ax.set_xlim(-0.15 * max(total_width, 1), total_width + 0.15 * max(total_width, 1))
-    ax.set_ylim(-0.25, max(total_height + 0.35, 1.0))
+    ax.set_xlim(-0.35, width + 0.35)
+    ax.set_ylim(-0.25, total_height + 0.45)
     ax.axis("off")
-    ax.set_title(f"{n_stages} stage(s), θ = {theta_deg}°", fontsize=12)
+    ax.set_title(f"{n_stages} stage(s), θ = {theta_deg}°", fontsize=14, color=purple_dark)
 
     return fig
 
@@ -256,19 +266,26 @@ with geo_right:
 
 st.markdown("---")
 
-# ---------- Section 2: Material and Configuration ----------
-st.subheader("Material and Configuration")
+# ---------- Section 2: Material ----------
+st.subheader("Material")
+
+rho_val_col, sy_val_col, kt_col = st.columns(3)
+
+with rho_val_col:
+    rho_val = st.number_input("Material density", value=490.0, min_value=0.0001, format="%.4f")
+with sy_val_col:
+    Sy_val = st.number_input("Yield strength", value=36.0, min_value=0.0001, format="%.4f")
+with kt_col:
+    Kt_P = st.number_input("Kt_P", value=2.0, min_value=0.0, format="%.3f")
+
+st.markdown("---")
+
+# ---------- Section 3: Configuration ----------
+st.subheader("Configuration")
 
 config_left, config_right = st.columns([1, 1])
 
 with config_left:
-    st.markdown("#### Material")
-    rho_val = st.number_input("Material density", value=490.0, min_value=0.0001, format="%.4f")
-    Sy_val = st.number_input("Yield strength", value=36.0, min_value=0.0001, format="%.4f")
-    Kt_P = st.number_input("Kt_P", value=2.0, min_value=0.0, format="%.3f")
-
-with config_right:
-    st.markdown("#### Lift Configuration")
     theta_deg = st.slider("Scissor angle θ", 1, 89, 15)
     n = st.slider("Stages n", 1, 10, 1)
 
@@ -312,14 +329,15 @@ with config_right:
         cb_len_val = st.number_input("Cross-brace length", value=18.0, min_value=0.0001, format="%.4f")
         cb_t_val = st.number_input("Cross-brace wall thickness", value=0.065, min_value=0.0001, format="%.4f")
 
+with config_right:
     st.markdown("#### Live Scissor Visualization")
-    viz_fig = draw_scissor_lift(n_stages=n, theta_deg=theta_deg, show_bracing=use_cb)
+    viz_fig = draw_scissor_lift_vertical(n_stages=n, theta_deg=theta_deg, show_bracing=use_cb)
     st.pyplot(viz_fig, use_container_width=True)
     plt.close(viz_fig)
 
 st.markdown("---")
 
-# ---------- Section 3: Tube Sweep ----------
+# ---------- Section 4: Tube Sweep ----------
 st.subheader("Tube Sweep")
 
 s1, s2, s3, s4 = st.columns(4)
@@ -388,7 +406,7 @@ try:
         SF_target=SF_target,
     )
 
-    # ---------- Section 4: Results ----------
+    # ---------- Section 5: Results ----------
     st.subheader("Results")
 
     m1, m2, m3 = st.columns(3)
@@ -441,4 +459,3 @@ try:
 
 except Exception as e:
     st.error(f"Error: {e}")
-
