@@ -21,36 +21,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------- Display formatting helpers ----------
-def fmt_sig(value, sig=3):
-    """
-    Format values to roughly sig significant figures with commas when helpful.
-    Keeps normal decimal format for most values and only uses scientific notation
-    for extremely small or extremely large magnitudes.
-    """
-    if value is None:
-        return "-"
-    if isinstance(value, str):
-        return value
-    if value == 0:
-        return "0"
-
-    a = abs(value)
-
-    if a < 1e-3 or a >= 1e6:
-        return f"{value:.{sig}g}"
-
-    digits_before = int(math.floor(math.log10(a))) + 1
-    decimals = max(sig - digits_before, 0)
-    return f"{value:,.{decimals}f}"
-
-def latex_num(value, sig=3):
-    """
-    Same idea as fmt_sig, but escapes commas for LaTeX.
-    """
-    s = fmt_sig(value, sig)
-    return s.replace(",", "{,}")
-
 # ---------- Theme / Fonts ----------
 st.markdown("""
 <style>
@@ -462,7 +432,7 @@ try:
         raise ValueError("The ratio d/b must be greater than zero.")
     if x_ratio > 0.6:
         st.error(
-            f"d/b = {fmt_sig(x_ratio)} which is outside the polynomial validity range used here (0 < d/b ≤ 0.6). "
+            f"d/b = {x_ratio:.3f}, which is outside the polynomial validity range used here (0 < d/b ≤ 0.6). "
             "Please reduce the hole diameter or increase the beam width."
         )
         st.stop()
@@ -517,14 +487,8 @@ try:
     )
 
     m1, m2, m3 = st.columns(3)
-    m1.metric(
-        "Von Mises stress for the solid member",
-        f"{fmt_sig(stress_from_Pa(results['solid_sigma_vm'], stress_unit))} {stress_unit}"
-    )
-    m2.metric(
-        "Factor of safety for the solid member",
-        fmt_sig(results["solid_SF"])
-    )
+    m1.metric("Von Mises stress for the solid member", f"{stress_from_Pa(results['solid_sigma_vm'], stress_unit):.3f} {stress_unit}")
+    m2.metric("Factor of safety for the solid member", f"{results['solid_SF']:.3f}")
     m3.metric("Baseline solid-member status", "YIELDS" if results["solid_yields"] else "OK")
 
     st.markdown("---")
@@ -596,39 +560,24 @@ try:
     rows = []
     for r in tube_results["tube_rows"]:
         rows.append({
-            f"Tube wall thickness, t ({length_unit})": fmt_sig(length_from_m(r["t_m"], length_unit)),
-            "Resulting member mass (kg)": fmt_sig(r["mass_kg"]),
-            f"Von Mises stress ({stress_unit})": fmt_sig(stress_from_Pa(r["sigma_vm"], stress_unit)),
-            "Factor of safety": fmt_sig(r["SF"]),
+            f"Tube wall thickness, t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
+            "Resulting member mass (kg)": round(r["mass_kg"], 4),
+            f"Von Mises stress ({stress_unit})": round(stress_from_Pa(r["sigma_vm"], stress_unit), 4),
+            "Factor of safety": round(r["SF"], 4),
         })
 
     if rows:
-        display_df = pd.DataFrame(rows)
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+        df = pd.DataFrame(rows)
+        st.dataframe(df, use_container_width=True, hide_index=True)
 
-        chart_rows = []
-        for r in tube_results["tube_rows"]:
-            chart_rows.append({
-                f"Tube wall thickness, t ({length_unit})": length_from_m(r["t_m"], length_unit),
-                "Resulting member mass (kg)": r["mass_kg"],
-                f"Von Mises stress ({stress_unit})": stress_from_Pa(r["sigma_vm"], stress_unit),
-                "Factor of safety": r["SF"],
-            })
-
-        chart_df = pd.DataFrame(chart_rows)
         x_col = f"Tube wall thickness, t ({length_unit})"
         chart = (
-            alt.Chart(chart_df)
+            alt.Chart(df)
             .mark_line(point=alt.OverlayMarkDef(size=100, filled=True))
             .encode(
                 x=alt.X(x_col, title=x_col),
                 y=alt.Y("Factor of safety", title="Factor of Safety"),
-                tooltip=[
-                    alt.Tooltip(x_col, format=",.3g"),
-                    alt.Tooltip("Resulting member mass (kg)", format=",.3g"),
-                    alt.Tooltip(f"Von Mises stress ({stress_unit})", format=",.3g"),
-                    alt.Tooltip("Factor of safety", format=",.3g"),
-                ]
+                tooltip=[x_col, "Resulting member mass (kg)", f"Von Mises stress ({stress_unit})", "Factor of safety"]
             )
             .properties(height=400)
         )
@@ -643,9 +592,9 @@ try:
     viable_rows = []
     for r in tube_results["tube_viable"]:
         viable_rows.append({
-            f"Tube wall thickness, t ({length_unit})": fmt_sig(length_from_m(r["t_m"], length_unit)),
-            "Resulting member mass (kg)": fmt_sig(r["mass_kg"]),
-            "Factor of safety": fmt_sig(r["SF"]),
+            f"Tube wall thickness, t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
+            "Resulting member mass (kg)": round(r["mass_kg"], 4),
+            "Factor of safety": round(r["SF"], 4),
         })
 
     if viable_rows:
@@ -665,70 +614,70 @@ try:
 
         st.markdown("#### Input summary")
         input_df = pd.DataFrame([
-            {"Quantity": "Width b", "Value": fmt_sig(b_val), "Unit": length_unit},
-            {"Quantity": "Thickness h", "Value": fmt_sig(h_val), "Unit": length_unit},
-            {"Quantity": "Member span L", "Value": fmt_sig(L_val), "Unit": length_unit},
-            {"Quantity": "Hole diameter d", "Value": fmt_sig(d_val), "Unit": length_unit},
-            {"Quantity": "Left hole offset", "Value": fmt_sig(edge_offset_val), "Unit": length_unit},
-            {"Quantity": "Density", "Value": fmt_sig(rho_val), "Unit": density_unit},
-            {"Quantity": "Yield strength", "Value": fmt_sig(Sy_val), "Unit": stress_unit},
-            {"Quantity": "Scissor angle θ", "Value": fmt_sig(theta_deg), "Unit": "deg"},
-            {"Quantity": "Stages n", "Value": fmt_sig(n), "Unit": "-"},
+            {"Quantity": "Width b", "Value": b_val, "Unit": length_unit},
+            {"Quantity": "Thickness h", "Value": h_val, "Unit": length_unit},
+            {"Quantity": "Member span L", "Value": L_val, "Unit": length_unit},
+            {"Quantity": "Hole diameter d", "Value": d_val, "Unit": length_unit},
+            {"Quantity": "Left hole offset", "Value": edge_offset_val, "Unit": length_unit},
+            {"Quantity": "Density", "Value": rho_val, "Unit": density_unit},
+            {"Quantity": "Yield strength", "Value": Sy_val, "Unit": stress_unit},
+            {"Quantity": "Scissor angle θ", "Value": theta_deg, "Unit": "deg"},
+            {"Quantity": "Stages n", "Value": n, "Unit": "-"},
         ])
         st.dataframe(input_df, use_container_width=True, hide_index=True)
 
         show_step(
             "1. Hole-to-width ratio",
             r"x=\frac{d}{b}",
-            rf"x=\frac{{{latex_num(d_val)}}}{{{latex_num(b_val)}}}",
-            rf"x={latex_num(x_ratio)}"
+            rf"x=\frac{{{d_val:.6f}}}{{{b_val:.6f}}}",
+            rf"x={x_ratio:.6f}"
         )
 
         show_step(
             "2. Axial stress concentration factor",
             r"K_t=2.95-2.855x+3.410x^2-1.678x^3",
-            rf"K_t=2.95-2.855({latex_num(x_ratio)})+3.410({latex_num(x_ratio)})^2-1.678({latex_num(x_ratio)})^3",
-            rf"K_t={latex_num(Kt_P)}"
+            rf"K_t=2.95-2.855({x_ratio:.6f})+3.410({x_ratio:.6f})^2-1.678({x_ratio:.6f})^3",
+            rf"K_t={Kt_P:.6f}"
         )
 
         st.markdown("#### 3. Converted SI values")
         si_df = pd.DataFrame([
-            {"Quantity": "b", "Value": fmt_sig(b_m), "Unit": "m"},
-            {"Quantity": "h", "Value": fmt_sig(h_m), "Unit": "m"},
-            {"Quantity": "L", "Value": fmt_sig(L_m), "Unit": "m"},
-            {"Quantity": "d", "Value": fmt_sig(d_m), "Unit": "m"},
-            {"Quantity": "Edge offset", "Value": fmt_sig(edge_offset_m), "Unit": "m"},
-            {"Quantity": "Density", "Value": fmt_sig(rho_kg_m3), "Unit": "kg/m^3"},
-            {"Quantity": "Yield strength", "Value": fmt_sig(Sy_Pa), "Unit": "Pa"},
-            {"Quantity": "P", "Value": fmt_sig(P_N_user), "Unit": "N"},
-            {"Quantity": "Mz", "Value": fmt_sig(Mz_Nm), "Unit": "N·m"},
-            {"Quantity": "Mx", "Value": fmt_sig(Mx_Nm), "Unit": "N·m"},
-            {"Quantity": "My", "Value": fmt_sig(My_Nm), "Unit": "N·m"},
-            {"Quantity": "dep", "Value": fmt_sig(dep_m), "Unit": "m"},
+            {"Quantity": "b", "Value": b_m, "Unit": "m"},
+            {"Quantity": "h", "Value": h_m, "Unit": "m"},
+            {"Quantity": "L", "Value": L_m, "Unit": "m"},
+            {"Quantity": "d", "Value": d_m, "Unit": "m"},
+            {"Quantity": "Edge offset", "Value": edge_offset_m, "Unit": "m"},
+            {"Quantity": "Density", "Value": rho_kg_m3, "Unit": "kg/m^3"},
+            {"Quantity": "Yield strength", "Value": Sy_Pa, "Unit": "Pa"},
+            {"Quantity": "P", "Value": P_N_user, "Unit": "N"},
+            {"Quantity": "Mz", "Value": Mz_Nm, "Unit": "N·m"},
+            {"Quantity": "Mx", "Value": Mx_Nm, "Unit": "N·m"},
+            {"Quantity": "My", "Value": My_Nm, "Unit": "N·m"},
+            {"Quantity": "dep", "Value": dep_m, "Unit": "m"},
         ])
         st.dataframe(si_df, use_container_width=True, hide_index=True)
 
         st.markdown("#### 4. Statics results used by the solid member calculation")
         forces = solid["forces"]
         statics_df = pd.DataFrame([
-            {"Quantity": "Xt", "Value": fmt_sig(forces["Xt"]), "Unit": "lbf"},
-            {"Quantity": "Yt", "Value": fmt_sig(forces["Yt"]), "Unit": "lbf"},
-            {"Quantity": "Xm", "Value": fmt_sig(forces["Xm"]), "Unit": "lbf"},
-            {"Quantity": "Ym", "Value": fmt_sig(forces["Ym"]), "Unit": "lbf"},
-            {"Quantity": "Xb", "Value": fmt_sig(forces["Xb"]), "Unit": "lbf"},
-            {"Quantity": "Yb", "Value": fmt_sig(forces["Yb"]), "Unit": "lbf"},
-            {"Quantity": "Max |V|", "Value": fmt_sig(solid["V_abs_max_lbf"]), "Unit": "lbf"},
-            {"Quantity": "Max |M|", "Value": fmt_sig(solid["M_abs_max_lbf_in"]), "Unit": "lbf·in"},
-            {"Quantity": "Member mass", "Value": fmt_sig(solid["mass_kg"]), "Unit": "kg"},
-            {"Quantity": "Pin span used", "Value": fmt_sig(solid["L_pin_in"]), "Unit": "in"},
+            {"Quantity": "Xt", "Value": forces["Xt"], "Unit": "lbf"},
+            {"Quantity": "Yt", "Value": forces["Yt"], "Unit": "lbf"},
+            {"Quantity": "Xm", "Value": forces["Xm"], "Unit": "lbf"},
+            {"Quantity": "Ym", "Value": forces["Ym"], "Unit": "lbf"},
+            {"Quantity": "Xb", "Value": forces["Xb"], "Unit": "lbf"},
+            {"Quantity": "Yb", "Value": forces["Yb"], "Unit": "lbf"},
+            {"Quantity": "Max |V|", "Value": solid["V_abs_max_lbf"], "Unit": "lbf"},
+            {"Quantity": "Max |M|", "Value": solid["M_abs_max_lbf_in"], "Unit": "lbf·in"},
+            {"Quantity": "Member mass", "Value": solid["mass_kg"], "Unit": "kg"},
+            {"Quantity": "Pin span used", "Value": solid["L_pin_in"], "Unit": "in"},
         ])
         st.dataframe(statics_df, use_container_width=True, hide_index=True)
 
         show_step(
             "5. Net area used for axial stress",
             r"A_{net}=(b-d)h",
-            rf"A_{{net}}=({latex_num(b_m)}-{latex_num(d_m)})({latex_num(h_m)})",
-            rf"A_{{net}}={latex_num(solid['A_net_report'])}\ \text{{m}}^2"
+            rf"A_{{net}}=({b_m:.6f}-{d_m:.6f})({h_m:.6f})",
+            rf"A_{{net}}={solid['A_net_report']:.6f}\ \text{{m}}^2"
         )
 
         if d_m > 0:
@@ -736,73 +685,73 @@ try:
             show_step(
                 "6. Section modulus used for bending",
                 r"S=\frac{(b^3-d\,^3)h}{6d}",
-                rf"S=\frac{{({latex_num(b_m)}^3-{latex_num(d_m)}\,^3)({latex_num(h_m)})}}{{6({latex_num(d_m)})}}",
-                rf"S={latex_num(s_calc)}\ \text{{m}}^3"
+                rf"S=\frac{{({b_m:.6f}^3-{d_m:.6f}\,^3)({h_m:.6f})}}{{6({d_m:.6f})}}",
+                rf"S={s_calc:.6f}\ \text{{m}}^3"
             )
 
         axial_force_N = solid["sigma_nom_P"] * solid["A_net_report"]
         show_step(
             "7. Nominal axial stress",
             r"\sigma_{nom,P}=\frac{P}{A_{net}}",
-            rf"\sigma_{{nom,P}}=\frac{{{latex_num(axial_force_N)}}}{{{latex_num(solid['A_net_report'])}}}",
-            rf"\sigma_{{nom,P}}={latex_num(solid['sigma_nom_P'])}\ \text{{Pa}}"
+            rf"\sigma_{{nom,P}}=\frac{{{axial_force_N:.6f}}}{{{solid['A_net_report']:.6f}}}",
+            rf"\sigma_{{nom,P}}={solid['sigma_nom_P']:.6f}\ \text{{Pa}}"
         )
 
         show_step(
             "8. Maximum axial stress",
             r"\sigma_{max,P}=K_t\,\sigma_{nom,P}",
-            rf"\sigma_{{max,P}}=({latex_num(Kt_P)})({latex_num(solid['sigma_nom_P'])})",
-            rf"\sigma_{{max,P}}={latex_num(solid['sigma_max_P'])}\ \text{{Pa}}"
+            rf"\sigma_{{max,P}}=({Kt_P:.6f})({solid['sigma_nom_P']:.6f})",
+            rf"\sigma_{{max,P}}={solid['sigma_max_P']:.6f}\ \text{{Pa}}"
         )
 
         max_moment_Nm = solid["M_abs_max_lbf_in"] * 4.44822 * 0.0254
         show_step(
             "9. Nominal bending stress",
             r"\sigma_{nom,M}=\frac{M}{S}",
-            rf"\sigma_{{nom,M}}=\frac{{{latex_num(max_moment_Nm)}}}{{{latex_num(solid['S_report'])}}}",
-            rf"\sigma_{{nom,M}}={latex_num(solid['sigma_nom_M'])}\ \text{{Pa}}"
+            rf"\sigma_{{nom,M}}=\frac{{{max_moment_Nm:.6f}}}{{{solid['S_report']:.6f}}}",
+            rf"\sigma_{{nom,M}}={solid['sigma_nom_M']:.6f}\ \text{{Pa}}"
         )
 
         show_step(
             "10. Maximum bending stress",
             r"\sigma_{max,M}=K_{t,M}\,\sigma_{nom,M}",
-            rf"\sigma_{{max,M}}=(2.00)({latex_num(solid['sigma_nom_M'])})",
-            rf"\sigma_{{max,M}}={latex_num(solid['sigma_max_M'])}\ \text{{Pa}}"
+            rf"\sigma_{{max,M}}=(2.000000)({solid['sigma_nom_M']:.6f})",
+            rf"\sigma_{{max,M}}={solid['sigma_max_M']:.6f}\ \text{{Pa}}"
         )
 
         show_step(
             "11. Combined normal stress",
             r"\sigma=\sigma_{max,P}+\sigma_{max,M}",
-            rf"\sigma=({latex_num(solid['sigma_max_P'])})+({latex_num(solid['sigma_max_M'])})",
-            rf"\sigma={latex_num(solid['sigma_comb'])}\ \text{{Pa}}"
+            rf"\sigma=({solid['sigma_max_P']:.6f})+({solid['sigma_max_M']:.6f})",
+            rf"\sigma={solid['sigma_comb']:.6f}\ \text{{Pa}}"
         )
 
         max_shear_N = solid["V_abs_max_lbf"] * 4.44822
         show_step(
             "12. Maximum shear stress",
             r"\tau=K_{t,\tau}\left(\frac{V}{A_{shear}}\right)",
-            rf"\tau=(2.00)\left(\frac{{{latex_num(max_shear_N)}}}{{{latex_num(solid['A_shear_m2'])}}}\right)",
-            rf"\tau={latex_num(solid['tau_max'])}\ \text{{Pa}}"
+            rf"\tau=(2.000000)\left(\frac{{{max_shear_N:.6f}}}{{{solid['A_shear_m2']:.6f}}}\right)",
+            rf"\tau={solid['tau_max']:.6f}\ \text{{Pa}}"
         )
 
         show_step(
             "13. Von Mises stress",
             r"\sigma_{vm}=\sqrt{\sigma^2+3\tau^2}",
-            rf"\sigma_{{vm}}=\sqrt{{({latex_num(solid['sigma_comb'])})^2+3({latex_num(solid['tau_max'])})^2}}",
-            rf"\sigma_{{vm}}={latex_num(results['solid_sigma_vm'])}\ \text{{Pa}}"
+            rf"\sigma_{{vm}}=\sqrt{{({solid['sigma_comb']:.6f})^2+3({solid['tau_max']:.6f})^2}}",
+            rf"\sigma_{{vm}}={results['solid_sigma_vm']:.6f}\ \text{{Pa}}"
         )
 
         show_step(
             "14. Safety factor",
             r"SF=\frac{S_y}{\sigma_{vm}}",
-            rf"SF=\frac{{{latex_num(Sy_Pa)}}}{{{latex_num(results['solid_sigma_vm'])}}}",
-            rf"SF={latex_num(results['solid_SF'])}"
+            rf"SF=\frac{{{Sy_Pa:.6f}}}{{{results['solid_sigma_vm']:.6f}}}",
+            rf"SF={results['solid_SF']:.6f}"
         )
 
         st.markdown("#### 15. Final solid member values")
         final_df = pd.DataFrame([
-            {"Quantity": "Von Mises stress", "Value": fmt_sig(stress_from_Pa(results["solid_sigma_vm"], stress_unit)), "Unit": stress_unit},
-            {"Quantity": "Safety factor", "Value": fmt_sig(results["solid_SF"]), "Unit": "-"},
+            {"Quantity": "Von Mises stress", "Value": stress_from_Pa(results["solid_sigma_vm"], stress_unit), "Unit": stress_unit},
+            {"Quantity": "Safety factor", "Value": results["solid_SF"], "Unit": "-"},
             {"Quantity": "Status", "Value": "YIELDS" if results["solid_yields"] else "OK", "Unit": ""},
         ])
         st.dataframe(final_df, use_container_width=True, hide_index=True)
