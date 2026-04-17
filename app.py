@@ -135,6 +135,10 @@ label {
 
 # ---------- Helper: live scissor visualization ----------
 def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
+    """
+    Draw a vertically stacked scissor lift side view.
+    Plot stays compact and updates with stage count and angle.
+    """
     theta_deg = max(1, min(89, theta_deg))
     theta = math.radians(theta_deg)
 
@@ -149,12 +153,12 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
     purple_dark = "#450084"
     gold = "#C99700"
 
-    fig, ax = plt.subplots(figsize=(3.6, 4.6), dpi=200)
+    fig, ax = plt.subplots(figsize=(3.5, 3.8), dpi=200)
 
-    # base
+    # Base
     ax.plot([0, width], [0, 0], color=purple_dark, linewidth=1.8)
 
-    # stacked X stages
+    # Stacked X stages
     for i in range(n_stages):
         y0 = 2 * i * dy
         y1 = y0 + 2 * dy
@@ -162,10 +166,10 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
         ax.plot([0, width], [y0, y1], color=purple, linewidth=1.8)
         ax.plot([0, width], [y1, y0], color=purple, linewidth=1.8)
 
-        # center pin
+        # Center pin
         ax.plot([dx], [y0 + dy], marker='o', markersize=3.5, color=gold)
 
-    # top platform
+    # Top platform
     pad = 0.12 * width
     ax.plot(
         [-pad, width + pad],
@@ -174,17 +178,15 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
         linewidth=2.2
     )
 
-    # fixed view window
-    max_stages = 10
-    max_height = 2 * max_stages * member_length * math.sin(math.radians(89))
-
+    # Dynamic view window
     ax.set_xlim(-0.2, width + 0.2)
-    ax.set_ylim(-0.1, max_height + 0.2)
+    ax.set_ylim(-0.1, total_height + 0.25)
+
     ax.set_aspect("equal")
     ax.axis("off")
     ax.set_title(f"{n_stages} stage(s), θ = {theta_deg}°", fontsize=10, color=purple_dark, pad=6)
 
-    fig.tight_layout(pad=0.4)
+    fig.tight_layout(pad=0.3)
     return fig
 
 # ---------- Sidebar Logos ----------
@@ -260,13 +262,13 @@ st.markdown("---")
 # ---------- Section 2: Material ----------
 st.subheader("Material")
 
-rho_val_col, sy_val_col, kt_col = st.columns(3)
+mat1, mat2, mat3 = st.columns(3)
 
-with rho_val_col:
+with mat1:
     rho_val = st.number_input("Material density", value=490.0, min_value=0.0001, format="%.4f")
-with sy_val_col:
+with mat2:
     Sy_val = st.number_input("Yield strength", value=36.0, min_value=0.0001, format="%.4f")
-with kt_col:
+with mat3:
     Kt_P = st.number_input("Kt_P", value=2.0, min_value=0.0, format="%.3f")
 
 st.markdown("---")
@@ -278,7 +280,7 @@ config_left, config_right = st.columns([1, 1])
 
 with config_left:
     theta_deg = st.slider("Scissor angle θ", 1, 89, 15)
-    n = st.slider("Stages n", 1, 10, 1)
+    n = st.slider("Stages n", 1, 6, 1)
 
     sit = st.selectbox(
         "Loading situation",
@@ -321,7 +323,8 @@ with config_left:
         cb_t_val = st.number_input("Cross-brace wall thickness", value=0.065, min_value=0.0001, format="%.4f")
 
 with config_right:
-    st.markdown("#### Live Scissor Visualization")
+    st.markdown("<h4 style='text-align:center;'>Live Scissor Visualization</h4>", unsafe_allow_html=True)
+
     viz_fig = draw_scissor_lift_vertical(n_stages=n, theta_deg=theta_deg)
 
     viz_left, viz_center, viz_right = st.columns([1.2, 2.2, 1.2])
