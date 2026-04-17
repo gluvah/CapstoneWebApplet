@@ -154,17 +154,11 @@ def axial_kt_from_ratio(x: float) -> float:
     Axial stress concentration factor polynomial:
     Kt = 2.95 - 2.855x + 3.410x^2 - 1.678x^3
     where x = d/b
-
-    Implemented for ratios up to 0.6 based on the range you provided.
     """
     return 2.95 - 2.855 * x + 3.410 * x**2 - 1.678 * x**3
 
 # ---------- Helper: live scissor visualization ----------
 def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
-    """
-    Draw a vertically stacked scissor lift side view.
-    Plot stays compact and updates with stage count and angle.
-    """
     theta_deg = max(1, min(89, theta_deg))
     theta = math.radians(theta_deg)
 
@@ -181,10 +175,8 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
 
     fig, ax = plt.subplots(figsize=(3.6, 3.9), dpi=200)
 
-    # Base
     ax.plot([0, width], [0, 0], color=purple_dark, linewidth=1.8)
 
-    # Stacked X stages
     for i in range(n_stages):
         y0 = 2 * i * dy
         y1 = y0 + 2 * dy
@@ -192,10 +184,8 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
         ax.plot([0, width], [y0, y1], color=purple, linewidth=1.8)
         ax.plot([0, width], [y1, y0], color=purple, linewidth=1.8)
 
-        # Center pin
         ax.plot([dx], [y0 + dy], marker="o", markersize=3.5, color=gold)
 
-    # Top platform
     pad = 0.12 * width
     ax.plot(
         [-pad, width + pad],
@@ -204,7 +194,6 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
         linewidth=2.2
     )
 
-    # Dynamic view window
     ax.set_xlim(-0.2, width + 0.2)
     ax.set_ylim(-0.1, total_height + 0.25)
 
@@ -374,23 +363,7 @@ with config_right:
 
 st.markdown("---")
 
-# ---------- Section 4: Tube Sweep ----------
-st.subheader("Tube Sweep")
-
-s1, s2, s3, s4 = st.columns(4)
-
-with s1:
-    tube_t_min_val = st.number_input("Min t", value=0.065, min_value=0.0001, format="%.4f")
-with s2:
-    tube_t_max_val = st.number_input("Max t", value=0.250, min_value=0.0001, format="%.4f")
-with s3:
-    tube_t_step_val = st.number_input("Step t", value=0.020, min_value=0.0001, format="%.4f")
-with s4:
-    SF_target = st.number_input("Target SF", value=1.20, min_value=0.0001, format="%.3f")
-
-st.markdown("---")
-
-# ---------- Run Analysis ----------
+# ---------- Run analysis inputs ----------
 try:
     b_m = convert_length_to_m(b_val, length_unit)
     h_m = convert_length_to_m(h_val, length_unit)
@@ -411,11 +384,6 @@ try:
     cb_len_m = convert_length_to_m(cb_len_val, length_unit) if use_cb else None
     cb_t_m = convert_length_to_m(cb_t_val, length_unit) if use_cb else None
 
-    tube_t_min_m = convert_length_to_m(tube_t_min_val, length_unit)
-    tube_t_max_m = convert_length_to_m(tube_t_max_val, length_unit)
-    tube_t_step_m = convert_length_to_m(tube_t_step_val, length_unit)
-
-    # ---------- Automatic axial stress concentration factor ----------
     if b_val <= 0:
         raise ValueError("Width b must be greater than zero.")
 
@@ -432,7 +400,76 @@ try:
 
     Kt_P = axial_kt_from_ratio(x_ratio)
 
+    # default sweep values converted now so solid results can appear first
+    default_tube_t_min_val = 0.065
+    default_tube_t_max_val = 0.250
+    default_tube_t_step_val = 0.020
+    default_SF_target = 1.20
+
+    tube_t_min_m = convert_length_to_m(default_tube_t_min_val, length_unit)
+    tube_t_max_m = convert_length_to_m(default_tube_t_max_val, length_unit)
+    tube_t_step_m = convert_length_to_m(default_tube_t_step_val, length_unit)
+
     results = analyze_system(
+        b_m=b_m,
+        h_m=h_m,
+        L_m=L_m,
+        d_m=d_m,
+        edge_offset_m=edge_offset_m,
+        rho_kg_m3=rho_kg_m3,
+        Kt_P=Kt_P,
+        Kt_M=2.0,
+        Kt_tau=2.0,
+        theta_deg=theta_deg,
+        n=n,
+        sit=sit,
+        Sy_Pa=Sy_Pa,
+        P_N_user=P_N_user,
+        Mz_Nm=Mz_Nm,
+        Mx_Nm=Mx_Nm,
+        My_Nm=My_Nm,
+        dep_m=dep_m,
+        cb_outer_m=cb_outer_m,
+        cb_len_m=cb_len_m,
+        cb_t_m=cb_t_m,
+        tube_t_min_m=tube_t_min_m,
+        tube_t_max_m=tube_t_max_m,
+        tube_t_step_m=tube_t_step_m,
+        SF_target=default_SF_target,
+    )
+
+    # ---------- Section 4: Solid member results ----------
+    st.subheader("Solid Member Results")
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Von Mises", f"{stress_from_Pa(results['solid_sigma_vm'], stress_unit):.3f} {stress_unit}")
+    m2.metric("Safety Factor", f"{results['solid_SF']:.3f}")
+    m3.metric("Status", "YIELDS" if results["solid_yields"] else "OK")
+
+    st.markdown("#### Computed axial stress concentration factor for solid member")
+    st.write(f"Using d/b = {x_ratio:.4f}, the app computed Kt = {Kt_P:.4f}")
+
+    st.markdown("---")
+
+    # ---------- Section 5: Tube evaluation and sweep ----------
+    st.subheader("Tube Evaluation and Sweep")
+
+    s1, s2, s3, s4 = st.columns(4)
+
+    with s1:
+        tube_t_min_val = st.number_input("Min t", value=0.065, min_value=0.0001, format="%.4f")
+    with s2:
+        tube_t_max_val = st.number_input("Max t", value=0.250, min_value=0.0001, format="%.4f")
+    with s3:
+        tube_t_step_val = st.number_input("Step t", value=0.020, min_value=0.0001, format="%.4f")
+    with s4:
+        SF_target = st.number_input("Target SF", value=1.20, min_value=0.0001, format="%.3f")
+
+    tube_t_min_m = convert_length_to_m(tube_t_min_val, length_unit)
+    tube_t_max_m = convert_length_to_m(tube_t_max_val, length_unit)
+    tube_t_step_m = convert_length_to_m(tube_t_step_val, length_unit)
+
+    tube_results = analyze_system(
         b_m=b_m,
         h_m=h_m,
         L_m=L_m,
@@ -460,21 +497,10 @@ try:
         SF_target=SF_target,
     )
 
-    # ---------- Section 5: Results ----------
-    st.subheader("Results")
-
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Von Mises", f"{stress_from_Pa(results['solid_sigma_vm'], stress_unit):.3f} {stress_unit}")
-    m2.metric("Safety Factor", f"{results['solid_SF']:.3f}")
-    m3.metric("Status", "YIELDS" if results["solid_yields"] else "OK")
-
-    st.markdown("#### Computed axial stress concentration factor")
-    st.write(f"Using d/b = {x_ratio:.4f}, the app computed Kt = {Kt_P:.4f}")
-
-    st.markdown("#### Tube Candidates")
+    st.markdown("#### Tube candidates")
 
     rows = []
-    for r in results["tube_rows"]:
+    for r in tube_results["tube_rows"]:
         rows.append({
             f"t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
             "mass (kg)": round(r["mass_kg"], 4),
@@ -499,10 +525,10 @@ try:
         )
         st.altair_chart(chart, use_container_width=True)
 
-    st.markdown("#### Viable Options")
+    st.markdown("#### Viable tube options")
 
     viable_rows = []
-    for r in results["tube_viable"]:
+    for r in tube_results["tube_viable"]:
         viable_rows.append({
             f"t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
             "mass (kg)": round(r["mass_kg"], 4),
