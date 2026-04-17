@@ -334,7 +334,7 @@ geo_left, geo_right = st.columns([1, 1])
 with geo_left:
     b_val = st.number_input("Overall member width, b", value=3.0, min_value=0.0001, format="%.4f")
     h_val = st.number_input("Member thickness, h", value=0.25, min_value=0.0001, format="%.4f")
-    L_val = st.number_input("Pin-to-pin member span, L", value=20.0, min_value=0.0001, format="%.4f")
+    L_val = st.number_input("Total member span, L", value=20.0, min_value=0.0001, format="%.4f")
     d_val = st.number_input("Pin-hole diameter, d", value=1.0, min_value=0.0, format="%.4f")
     edge_offset_val = st.number_input("Distance from left edge to the first hole center", value=0.75, min_value=0.0, format="%.4f")
 
