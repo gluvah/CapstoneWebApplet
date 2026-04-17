@@ -148,6 +148,17 @@ label {
 </style>
 """, unsafe_allow_html=True)
 
+# ---------- Helper: axial stress concentration factor ----------
+def axial_kt_from_ratio(x: float) -> float:
+    """
+    Axial stress concentration factor polynomial:
+    Kt = 2.95 - 2.855x + 3.410x^2 - 1.678x^3
+    where x = d/b
+
+    Implemented for ratios up to 0.6 based on the range you provided.
+    """
+    return 2.95 - 2.855 * x + 3.410 * x**2 - 1.678 * x**3
+
 # ---------- Helper: live scissor visualization ----------
 def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
     """
@@ -283,14 +294,12 @@ st.markdown("---")
 # ---------- Section 2: Material ----------
 st.subheader("Material")
 
-mat1, mat2, mat3 = st.columns(3)
+mat1, mat2 = st.columns(2)
 
 with mat1:
     rho_val = st.number_input("Material density", value=490.0, min_value=0.0001, format="%.4f")
 with mat2:
     Sy_val = st.number_input("Yield strength", value=36.0, min_value=0.0001, format="%.4f")
-with mat3:
-    Kt_P = st.number_input("Kt_P", value=2.0, min_value=0.0, format="%.3f")
 
 st.markdown("---")
 
@@ -406,6 +415,23 @@ try:
     tube_t_max_m = convert_length_to_m(tube_t_max_val, length_unit)
     tube_t_step_m = convert_length_to_m(tube_t_step_val, length_unit)
 
+    # ---------- Automatic axial stress concentration factor ----------
+    if b_val <= 0:
+        raise ValueError("Width b must be greater than zero.")
+
+    x_ratio = d_val / b_val
+
+    if x_ratio <= 0:
+        raise ValueError("The ratio d/b must be greater than zero.")
+    if x_ratio > 0.6:
+        st.error(
+            f"d/b = {x_ratio:.3f}, which is outside the polynomial validity range used here (0 < d/b ≤ 0.6). "
+            "Please reduce the hole diameter or increase the beam width."
+        )
+        st.stop()
+
+    Kt_P = axial_kt_from_ratio(x_ratio)
+
     results = analyze_system(
         b_m=b_m,
         h_m=h_m,
@@ -441,6 +467,9 @@ try:
     m1.metric("Von Mises", f"{stress_from_Pa(results['solid_sigma_vm'], stress_unit):.3f} {stress_unit}")
     m2.metric("Safety Factor", f"{results['solid_SF']:.3f}")
     m3.metric("Status", "YIELDS" if results["solid_yields"] else "OK")
+
+    st.markdown("#### Computed axial stress concentration factor")
+    st.write(f"Using d/b = {x_ratio:.4f}, the app computed Kt = {Kt_P:.4f}")
 
     st.markdown("#### Tube Candidates")
 
