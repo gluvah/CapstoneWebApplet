@@ -130,24 +130,6 @@ label {
 .block-container {
     padding-top: 2rem;
 }
-
-/* Slider styling */
-.stSlider [data-baseweb="slider"] div {
-    color: #5E2CA5 !important;
-}
-
-.stSlider div[data-testid="stTickBarMin"] {
-    background: #5E2CA5 !important;
-}
-
-.stSlider [role="slider"] {
-    background-color: #5E2CA5 !important;
-    border: 2px solid #450084 !important;
-}
-
-.stSlider [role="slider"]:hover {
-    box-shadow: 0 0 0 0.2rem rgba(94,44,165,0.25) !important;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -202,6 +184,7 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
 
     ax.set_aspect("equal")
     ax.axis("off")
+    ax.set_title(f"{n_stages} stage(s), θ = {theta_deg}°", fontsize=10, color=purple_dark, pad=6)
 
     fig.tight_layout(pad=0.3)
     return fig
@@ -340,25 +323,15 @@ with config_left:
         cb_t_val = st.number_input("Cross-brace wall thickness", value=0.065, min_value=0.0001, format="%.4f")
 
 with config_right:
+    st.markdown("<h4 style='text-align:center;'>Live Scissor Visualization</h4>", unsafe_allow_html=True)
+
+    viz_fig = draw_scissor_lift_vertical(n_stages=n, theta_deg=theta_deg)
+
     viz_left, viz_center, viz_right = st.columns([1.2, 2.2, 1.2])
-
     with viz_center:
-        st.markdown(
-            "<h4 style='text-align:center; margin-bottom:0.15rem;'>Live Scissor Visualization</h4>",
-            unsafe_allow_html=True
-        )
-
-        st.markdown(
-            f"<div style='text-align:center; color:#5E2CA5; font-size:1.15rem; "
-            f"font-weight:700; margin-bottom:0.35rem;'>"
-            f"{n} stage(s), θ = {theta_deg}°"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-
-        viz_fig = draw_scissor_lift_vertical(n_stages=n, theta_deg=theta_deg)
         st.pyplot(viz_fig, use_container_width=False)
-        plt.close(viz_fig)
+
+    plt.close(viz_fig)
 
 st.markdown("---")
 
