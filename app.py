@@ -134,10 +134,11 @@ label {
 """, unsafe_allow_html=True)
 
 # ---------- Helper: live scissor visualization ----------
-def draw_scissor_lift_vertical(n_stages: int, theta_deg: float, show_bracing: bool = False):
+def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
     """
     Draw a vertically stacked scissor lift side view.
     Each stage is one X stacked above the previous stage.
+    Plot size stays visually consistent as n changes.
     """
     theta_deg = max(1, min(89, theta_deg))
     theta = math.radians(theta_deg)
@@ -149,11 +150,12 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float, show_bracing: bo
     width = 2 * dx
     total_height = 2 * n_stages * dy
 
-    purple = "#5E2CA5"   # similar to your requested shade
+    purple = "#5E2CA5"
     purple_dark = "#450084"
     gold = "#C99700"
 
-    fig, ax = plt.subplots(figsize=(7.2, 5.2))
+    # Fixed figure size
+    fig, ax = plt.subplots(figsize=(6.5, 5.0))
 
     # base
     ax.plot([0, width], [0, 0], color=purple_dark, linewidth=3)
@@ -163,14 +165,13 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float, show_bracing: bo
         y0 = 2 * i * dy
         y1 = y0 + 2 * dy
 
-        # diagonals
         ax.plot([0, width], [y0, y1], color=purple, linewidth=3)
         ax.plot([0, width], [y1, y0], color=purple, linewidth=3)
 
         # center pin
         ax.plot([dx], [y0 + dy], marker='o', markersize=6, color=gold)
 
-        # side pins
+        # end pins
         ax.plot([0, width], [y0, y0], linestyle='None', marker='o', markersize=5, color=purple_dark)
         ax.plot([0, width], [y1, y1], linestyle='None', marker='o', markersize=5, color=purple_dark)
 
@@ -183,14 +184,14 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float, show_bracing: bo
         linewidth=4
     )
 
-    # optional cross-bracing cue
-    if show_bracing:
-        ax.plot([0, width], [0, total_height], color=purple, linestyle='--', linewidth=1.8, alpha=0.6)
-        ax.plot([width, 0], [0, total_height], color=purple, linestyle='--', linewidth=1.8, alpha=0.6)
+    # ---- fixed viewing window so chart does not grow wildly ----
+    max_stages_for_view = 10
+    max_theta_for_view = math.radians(89)
+    max_height_view = 2 * max_stages_for_view * member_length * math.sin(max_theta_for_view)
 
     ax.set_aspect('equal')
     ax.set_xlim(-0.35, width + 0.35)
-    ax.set_ylim(-0.25, total_height + 0.45)
+    ax.set_ylim(-0.25, max_height_view + 0.45)
     ax.axis("off")
     ax.set_title(f"{n_stages} stage(s), θ = {theta_deg}°", fontsize=14, color=purple_dark)
 
@@ -331,7 +332,7 @@ with config_left:
 
 with config_right:
     st.markdown("#### Live Scissor Visualization")
-    viz_fig = draw_scissor_lift_vertical(n_stages=n, theta_deg=theta_deg, show_bracing=use_cb)
+    viz_fig = draw_scissor_lift_vertical(n_stages=n, theta_deg=theta_deg)
     st.pyplot(viz_fig, use_container_width=True)
     plt.close(viz_fig)
 
