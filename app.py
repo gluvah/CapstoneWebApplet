@@ -505,15 +505,6 @@ try:
         SF_target=SF_target,
     )
 
-    with st.expander("Tube sweep details", expanded=False):
-        sweep_df = pd.DataFrame([
-            {"Quantity": "Min t", "Value": tube_t_min_val, "Unit": length_unit},
-            {"Quantity": "Max t", "Value": tube_t_max_val, "Unit": length_unit},
-            {"Quantity": "Step t", "Value": tube_t_step_val, "Unit": length_unit},
-            {"Quantity": "Target safety factor", "Value": SF_target, "Unit": "-"},
-        ])
-        st.dataframe(sweep_df, use_container_width=True, hide_index=True)
-
     st.markdown("#### Tube candidates")
 
     rows = []
