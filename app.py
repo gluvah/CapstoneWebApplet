@@ -627,8 +627,8 @@ try:
         show_step(
             "5. Net area used for axial stress",
             r"A_{net}=(b-d)h",
-            rf"A_{{net}}=({b_m:.6e}-{d_m:.6e})({h_m:.6e})",
-            rf"A_{{net}}={solid['A_net_report']:.6e}\ \text{{m}}^2"
+            rf"A_{{net}}=({b_m:.6f}-{d_m:.6f})({h_m:.6f})",
+            rf"A_{{net}}={solid['A_net_report']:.6f}\ \text{{m}}^2"
         )
 
         if d_m > 0:
@@ -636,66 +636,66 @@ try:
             show_step(
                 "6. Section modulus used for bending",
                 r"S=\frac{(b^3-d^3)h}{6d}",
-                rf"S=\frac{{({b_m:.6e}^3-{d_m:.6e}^3)({h_m:.6e})}}{{6({d_m:.6e})}}",
-                rf"S={s_calc:.6e}\ \text{{m}}^3"
+                rf"S=\frac{{({b_m:.6f}^3-{d_m:.6f}^3)({h_m:.6f})}}{{6({d_m:.6f})}}",
+                rf"S={s_calc:.6f}\ \text{{m}}^3"
             )
 
         axial_force_N = solid["sigma_nom_P"] * solid["A_net_report"]
         show_step(
             "7. Nominal axial stress",
             r"\sigma_{nom,P}=\frac{P}{A_{net}}",
-            rf"\sigma_{{nom,P}}=\frac{{{axial_force_N:.6e}}}{{{solid['A_net_report']:.6e}}}",
-            rf"\sigma_{{nom,P}}={solid['sigma_nom_P']:.6e}\ \text{{Pa}}"
+            rf"\sigma_{{nom,P}}=\frac{{{axial_force_N:.6f}}}{{{solid['A_net_report']:.6f}}}",
+            rf"\sigma_{{nom,P}}={solid['sigma_nom_P']:.6f}\ \text{{Pa}}"
         )
 
         show_step(
             "8. Maximum axial stress",
             r"\sigma_{max,P}=K_t\,\sigma_{nom,P}",
-            rf"\sigma_{{max,P}}=({Kt_P:.6f})({solid['sigma_nom_P']:.6e})",
-            rf"\sigma_{{max,P}}={solid['sigma_max_P']:.6e}\ \text{{Pa}}"
+            rf"\sigma_{{max,P}}=({Kt_P:.6f})({solid['sigma_nom_P']:.6f})",
+            rf"\sigma_{{max,P}}={solid['sigma_max_P']:.6f}\ \text{{Pa}}"
         )
 
         max_moment_Nm = solid["M_abs_max_lbf_in"] * 4.44822 * 0.0254
         show_step(
             "9. Nominal bending stress",
             r"\sigma_{nom,M}=\frac{M}{S}",
-            rf"\sigma_{{nom,M}}=\frac{{{max_moment_Nm:.6e}}}{{{solid['S_report']:.6e}}}",
-            rf"\sigma_{{nom,M}}={solid['sigma_nom_M']:.6e}\ \text{{Pa}}"
+            rf"\sigma_{{nom,M}}=\frac{{{max_moment_Nm:.6f}}}{{{solid['S_report']:.6f}}}",
+            rf"\sigma_{{nom,M}}={solid['sigma_nom_M']:.6f}\ \text{{Pa}}"
         )
 
         show_step(
             "10. Maximum bending stress",
             r"\sigma_{max,M}=K_{t,M}\,\sigma_{nom,M}",
-            rf"\sigma_{{max,M}}=(2.000000)({solid['sigma_nom_M']:.6e})",
-            rf"\sigma_{{max,M}}={solid['sigma_max_M']:.6e}\ \text{{Pa}}"
+            rf"\sigma_{{max,M}}=(2.000000)({solid['sigma_nom_M']:.6f})",
+            rf"\sigma_{{max,M}}={solid['sigma_max_M']:.6f}\ \text{{Pa}}"
         )
 
         show_step(
             "11. Combined normal stress",
             r"\sigma=\sigma_{max,P}+\sigma_{max,M}",
-            rf"\sigma=({solid['sigma_max_P']:.6e})+({solid['sigma_max_M']:.6e})",
-            rf"\sigma={solid['sigma_comb']:.6e}\ \text{{Pa}}"
+            rf"\sigma=({solid['sigma_max_P']:.6f})+({solid['sigma_max_M']:.6f})",
+            rf"\sigma={solid['sigma_comb']:.6f}\ \text{{Pa}}"
         )
 
         max_shear_N = solid["V_abs_max_lbf"] * 4.44822
         show_step(
             "12. Maximum shear stress",
             r"\tau=K_{t,\tau}\left(\frac{V}{A_{shear}}\right)",
-            rf"\tau=(2.000000)\left(\frac{{{max_shear_N:.6e}}}{{{solid['A_shear_m2']:.6e}}}\right)",
-            rf"\tau={solid['tau_max']:.6e}\ \text{{Pa}}"
+            rf"\tau=(2.000000)\left(\frac{{{max_shear_N:.6f}}}{{{solid['A_shear_m2']:.6f}}}\right)",
+            rf"\tau={solid['tau_max']:.6f}\ \text{{Pa}}"
         )
 
         show_step(
             "13. Von Mises stress",
             r"\sigma_{vm}=\sqrt{\sigma^2+3\tau^2}",
-            rf"\sigma_{{vm}}=\sqrt{{({solid['sigma_comb']:.6e})^2+3({solid['tau_max']:.6e})^2}}",
-            rf"\sigma_{{vm}}={results['solid_sigma_vm']:.6e}\ \text{{Pa}}"
+            rf"\sigma_{{vm}}=\sqrt{{({solid['sigma_comb']:.6f})^2+3({solid['tau_max']:.6f})^2}}",
+            rf"\sigma_{{vm}}={results['solid_sigma_vm']:.6f}\ \text{{Pa}}"
         )
 
         show_step(
             "14. Safety factor",
             r"SF=\frac{S_y}{\sigma_{vm}}",
-            rf"SF=\frac{{{Sy_Pa:.6e}}}{{{results['solid_sigma_vm']:.6e}}}",
+            rf"SF=\frac{{{Sy_Pa:.6f}}}{{{results['solid_sigma_vm']:.6f}}}",
             rf"SF={results['solid_SF']:.6f}"
         )
 
