@@ -184,7 +184,6 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
 
     ax.set_aspect("equal")
     ax.axis("off")
-    ax.set_title(f"{n_stages} stage(s), θ = {theta_deg}°", fontsize=10, color=purple_dark, pad=6)
 
     fig.tight_layout(pad=0.3)
     return fig
@@ -323,7 +322,17 @@ with config_left:
         cb_t_val = st.number_input("Cross-brace wall thickness", value=0.065, min_value=0.0001, format="%.4f")
 
 with config_right:
-    st.markdown("<h4 style='text-align:center;'>Live Scissor Visualization</h4>", unsafe_allow_html=True)
+    st.markdown(
+        "<h4 style='text-align:center; margin-bottom:0.2rem;'>Live Scissor Visualization</h4>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f"<div style='text-align:center; color:#5E2CA5; font-size:1.35rem; font-weight:700; margin-bottom:0.4rem;'>"
+        f"{n} stage(s), θ = {theta_deg}°"
+        f"</div>",
+        unsafe_allow_html=True
+    )
 
     viz_fig = draw_scissor_lift_vertical(n_stages=n, theta_deg=theta_deg)
 
