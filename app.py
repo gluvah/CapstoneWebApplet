@@ -135,9 +135,6 @@ label {
 
 # ---------- Helper: live scissor visualization ----------
 def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
-    """
-    Compact fixed-size scissor lift visualization.
-    """
     theta_deg = max(1, min(89, theta_deg))
     theta = math.radians(theta_deg)
 
@@ -152,22 +149,21 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
     purple_dark = "#450084"
     gold = "#C99700"
 
-    # Smaller figure
-    fig, ax = plt.subplots(figsize=(0.8, 0.2), dpi=500)
+    fig, ax = plt.subplots(figsize=(3.6, 4.6), dpi=200)
 
-    # Thin base
-    ax.plot([0, width], [0, 0], color=purple_dark, linewidth=2)
+    # base
+    ax.plot([0, width], [0, 0], color=purple_dark, linewidth=1.8)
 
-    # Stages
+    # stacked X stages
     for i in range(n_stages):
         y0 = 2 * i * dy
         y1 = y0 + 2 * dy
 
-        ax.plot([0, width], [y0, y1], color=purple, linewidth=2)
-        ax.plot([0, width], [y1, y0], color=purple, linewidth=2)
+        ax.plot([0, width], [y0, y1], color=purple, linewidth=1.8)
+        ax.plot([0, width], [y1, y0], color=purple, linewidth=1.8)
 
         # center pin
-        ax.plot([dx], [y0 + dy], marker='o', markersize=4, color=gold)
+        ax.plot([dx], [y0 + dy], marker='o', markersize=3.5, color=gold)
 
     # top platform
     pad = 0.12 * width
@@ -175,20 +171,20 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
         [-pad, width + pad],
         [total_height, total_height],
         color=purple_dark,
-        linewidth=2.4
+        linewidth=2.2
     )
 
-    # Fixed viewport
+    # fixed view window
     max_stages = 10
     max_height = 2 * max_stages * member_length * math.sin(math.radians(89))
 
-    ax.set_xlim(-0.25, width + 0.25)
-    ax.set_ylim(-0.15, max_height + 0.25)
-
+    ax.set_xlim(-0.2, width + 0.2)
+    ax.set_ylim(-0.1, max_height + 0.2)
     ax.set_aspect("equal")
     ax.axis("off")
-    ax.set_title(f"{n_stages} stage(s), θ = {theta_deg}°", fontsize=11, color=purple_dark, pad=6)
+    ax.set_title(f"{n_stages} stage(s), θ = {theta_deg}°", fontsize=10, color=purple_dark, pad=6)
 
+    fig.tight_layout(pad=0.4)
     return fig
 
 # ---------- Sidebar Logos ----------
@@ -327,7 +323,11 @@ with config_left:
 with config_right:
     st.markdown("#### Live Scissor Visualization")
     viz_fig = draw_scissor_lift_vertical(n_stages=n, theta_deg=theta_deg)
-    st.pyplot(viz_fig, use_container_width=True)
+
+    viz_left, viz_center, viz_right = st.columns([1.2, 2.2, 1.2])
+    with viz_center:
+        st.pyplot(viz_fig, use_container_width=False)
+
     plt.close(viz_fig)
 
 st.markdown("---")
