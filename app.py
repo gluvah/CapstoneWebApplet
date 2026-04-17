@@ -40,9 +40,21 @@ h1, h2, h3 {
     font-weight: 700 !important;
 }
 
-p, div, span, label {
+/* Avoid overriding every span globally, or Streamlit icon fonts break */
+p, label {
     font-family: 'Roboto', sans-serif !important;
     color: #222222;
+}
+
+div {
+    color: #222222;
+}
+
+/* Keep expander/material icon fonts intact */
+span.material-symbols-rounded,
+i.material-icons,
+i.material-symbols-rounded {
+    font-family: "Material Symbols Rounded" !important;
 }
 
 section[data-testid="stSidebar"] {
