@@ -153,7 +153,7 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
     gold = "#C99700"
 
     # Smaller figure
-    fig, ax = plt.subplots(figsize=(2.8, 2.2), dpi=350)
+    fig, ax = plt.subplots(figsize=(0.8, 0.2), dpi=500)
 
     # Thin base
     ax.plot([0, width], [0, 0], color=purple_dark, linewidth=2)
