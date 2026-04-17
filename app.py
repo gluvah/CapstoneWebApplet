@@ -22,27 +22,27 @@ st.set_page_config(
 # ---------- Theme / Fonts ----------
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cherry+Cream+Soda&family=Inter:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cherry+Cream+Soda&family=Roboto:wght@400;500;700&display=swap');
 
 /* Base font */
 html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Roboto', sans-serif;
 }
 
 .stApp {
     background: linear-gradient(to bottom, #f8f6f2 0%, #fffaf0 100%);
 }
 
-/* Standard headers stay Inter */
+/* Standard headers stay Roboto */
 h1, h2, h3 {
     color: #450084;
-    font-family: 'Inter', sans-serif !important;
+    font-family: 'Roboto', sans-serif !important;
     font-weight: 700 !important;
 }
 
 /* General text */
 p, div, span, label {
-    font-family: 'Inter', sans-serif !important;
+    font-family: 'Roboto', sans-serif !important;
     color: #222222;
 }
 
@@ -58,7 +58,7 @@ section[data-testid="stSidebar"] * {
 /* Sidebar selectboxes */
 section[data-testid="stSidebar"] div[data-baseweb="select"] * {
     color: black !important;
-    font-family: 'Inter', sans-serif !important;
+    font-family: 'Roboto', sans-serif !important;
 }
 
 section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
@@ -91,7 +91,7 @@ ul[role="listbox"] li,
 div[role="option"] {
     color: black !important;
     background-color: white !important;
-    font-family: 'Inter', sans-serif !important;
+    font-family: 'Roboto', sans-serif !important;
 }
 
 /* Metric cards */
@@ -107,14 +107,14 @@ div[role="option"] {
 input {
     border: 2px solid #c99700 !important;
     border-radius: 8px !important;
-    font-family: 'Inter', sans-serif !important;
+    font-family: 'Roboto', sans-serif !important;
 }
 
 /* Labels */
 label {
     color: #450084 !important;
     font-weight: 700;
-    font-family: 'Inter', sans-serif !important;
+    font-family: 'Roboto', sans-serif !important;
 }
 
 /* Tables */
