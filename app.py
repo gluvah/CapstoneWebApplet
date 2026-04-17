@@ -583,15 +583,15 @@ try:
         show_step(
             "1. Hole-to-width ratio",
             r"x=\frac{d}{b}",
-            rf"x=\frac{{{d_val:.6f}}}{{{b_val:.6f}}}",
-            rf"x={x_ratio:.6f}"
+            rf"x=\frac{{{d_val:.2f}}}{{{b_val:.2f}}}",
+            rf"x={x_ratio:.2f}"
         )
 
         show_step(
             "2. Axial stress concentration factor",
             r"K_t=2.95-2.855x+3.410x^2-1.678x^3",
-            rf"K_t=2.95-2.855({x_ratio:.6f})+3.410({x_ratio:.6f})^2-1.678({x_ratio:.6f})^3",
-            rf"K_t={Kt_P:.6f}"
+            rf"K_t=2.95-2.855({x_ratio:.2f})+3.410({x_ratio:.2f})^2-1.678({x_ratio:.2f})^3",
+            rf"K_t={Kt_P:.2f}"
         )
 
         st.markdown("#### 3. Converted SI values")
@@ -630,8 +630,8 @@ try:
         show_step(
             "5. Net area used for axial stress",
             r"A_{net}=(b-d)h",
-            rf"A_{{net}}=({b_m:.6f}-{d_m:.6f})({h_m:.6f})",
-            rf"A_{{net}}={solid['A_net_report']:.6f}\ \text{{m}}^2"
+            rf"A_{{net}}=({b_m:.2f}-{d_m:.2f})({h_m:.2f})",
+            rf"A_{{net}}={solid['A_net_report']:.2f}\ \text{{m}}^2"
         )
 
         if d_m > 0:
@@ -639,67 +639,67 @@ try:
             show_step(
                 "6. Section modulus used for bending",
                 r"S=\frac{(b^3-d\,^3)h}{6d}",
-                rf"S=\frac{{({b_m:.6f}^3-{d_m:.6f}\,^3)({h_m:.6f})}}{{6({d_m:.6f})}}",
-                rf"S={s_calc:.6f}\ \text{{m}}^3"
+                rf"S=\frac{{({b_m:.2f}^3-{d_m:.2f}\,^3)({h_m:.2f})}}{{6({d_m:.2f})}}",
+                rf"S={s_calc:.2f}\ \text{{m}}^3"
             )
 
         axial_force_N = solid["sigma_nom_P"] * solid["A_net_report"]
         show_step(
             "7. Nominal axial stress",
             r"\sigma_{nom,P}=\frac{P}{A_{net}}",
-            rf"\sigma_{{nom,P}}=\frac{{{axial_force_N:.6f}}}{{{solid['A_net_report']:.6f}}}",
-            rf"\sigma_{{nom,P}}={solid['sigma_nom_P']:.6f}\ \text{{Pa}}"
+            rf"\sigma_{{nom,P}}=\frac{{{axial_force_N:.2f}}}{{{solid['A_net_report']:.2f}}}",
+            rf"\sigma_{{nom,P}}={solid['sigma_nom_P']:.2f}\ \text{{Pa}}"
         )
 
         show_step(
             "8. Maximum axial stress",
             r"\sigma_{max,P}=K_t\,\sigma_{nom,P}",
-            rf"\sigma_{{max,P}}=({Kt_P:.6f})({solid['sigma_nom_P']:.6f})",
-            rf"\sigma_{{max,P}}={solid['sigma_max_P']:.6f}\ \text{{Pa}}"
+            rf"\sigma_{{max,P}}=({Kt_P:.2f})({solid['sigma_nom_P']:.2f})",
+            rf"\sigma_{{max,P}}={solid['sigma_max_P']:.2f}\ \text{{Pa}}"
         )
 
         max_moment_Nm = solid["M_abs_max_lbf_in"] * 4.44822 * 0.0254
         show_step(
             "9. Nominal bending stress",
             r"\sigma_{nom,M}=\frac{M}{S}",
-            rf"\sigma_{{nom,M}}=\frac{{{max_moment_Nm:.6f}}}{{{solid['S_report']:.6f}}}",
-            rf"\sigma_{{nom,M}}={solid['sigma_nom_M']:.6f}\ \text{{Pa}}"
+            rf"\sigma_{{nom,M}}=\frac{{{max_moment_Nm:.2f}}}{{{solid['S_report']:.2f}}}",
+            rf"\sigma_{{nom,M}}={solid['sigma_nom_M']:.2f}\ \text{{Pa}}"
         )
 
         show_step(
             "10. Maximum bending stress",
             r"\sigma_{max,M}=K_{t,M}\,\sigma_{nom,M}",
-            rf"\sigma_{{max,M}}=(2.000000)({solid['sigma_nom_M']:.6f})",
-            rf"\sigma_{{max,M}}={solid['sigma_max_M']:.6f}\ \text{{Pa}}"
+            rf"\sigma_{{max,M}}=(2.000000)({solid['sigma_nom_M']:.2f})",
+            rf"\sigma_{{max,M}}={solid['sigma_max_M']:.2f}\ \text{{Pa}}"
         )
 
         show_step(
             "11. Combined normal stress",
             r"\sigma=\sigma_{max,P}+\sigma_{max,M}",
-            rf"\sigma=({solid['sigma_max_P']:.6f})+({solid['sigma_max_M']:.6f})",
-            rf"\sigma={solid['sigma_comb']:.6f}\ \text{{Pa}}"
+            rf"\sigma=({solid['sigma_max_P']:.2f})+({solid['sigma_max_M']:.2f})",
+            rf"\sigma={solid['sigma_comb']:.2f}\ \text{{Pa}}"
         )
 
         max_shear_N = solid["V_abs_max_lbf"] * 4.44822
         show_step(
             "12. Maximum shear stress",
             r"\tau=K_{t,\tau}\left(\frac{V}{A_{shear}}\right)",
-            rf"\tau=(2.000000)\left(\frac{{{max_shear_N:.6f}}}{{{solid['A_shear_m2']:.6f}}}\right)",
-            rf"\tau={solid['tau_max']:.6f}\ \text{{Pa}}"
+            rf"\tau=(2.000000)\left(\frac{{{max_shear_N:.2f}}}{{{solid['A_shear_m2']:.2f}}}\right)",
+            rf"\tau={solid['tau_max']:.2f}\ \text{{Pa}}"
         )
 
         show_step(
             "13. Von Mises stress",
             r"\sigma_{vm}=\sqrt{\sigma^2+3\tau^2}",
-            rf"\sigma_{{vm}}=\sqrt{{({solid['sigma_comb']:.6f})^2+3({solid['tau_max']:.6f})^2}}",
-            rf"\sigma_{{vm}}={results['solid_sigma_vm']:.6f}\ \text{{Pa}}"
+            rf"\sigma_{{vm}}=\sqrt{{({solid['sigma_comb']:.2f})^2+3({solid['tau_max']:.2f})^2}}",
+            rf"\sigma_{{vm}}={results['solid_sigma_vm']:.2f}\ \text{{Pa}}"
         )
 
         show_step(
             "14. Safety factor",
             r"SF=\frac{S_y}{\sigma_{vm}}",
-            rf"SF=\frac{{{Sy_Pa:.6f}}}{{{results['solid_sigma_vm']:.6f}}}",
-            rf"SF={results['solid_SF']:.6f}"
+            rf"SF=\frac{{{Sy_Pa:.2f}}}{{{results['solid_sigma_vm']:.2f}}}",
+            rf"SF={results['solid_SF']:.2f}"
         )
 
         st.markdown("#### 15. Final solid member values")
