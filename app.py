@@ -33,19 +33,11 @@ html, body, [class*="css"] {
     background: linear-gradient(to bottom, #f8f6f2 0%, #fffaf0 100%);
 }
 
-/* Main title */
-h1 {
+/* Standard headers stay Inter */
+h1, h2, h3 {
     color: #450084;
-    font-family: 'Cherry Cream Soda', system-ui !important;
-    font-weight: 400 !important;
-    letter-spacing: 0.5px;
-}
-
-/* Section headers */
-h2, h3 {
-    color: #450084;
-    font-family: 'Cherry Cream Soda', system-ui !important;
-    font-weight: 400 !important;
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 700 !important;
 }
 
 /* General text */
@@ -60,14 +52,6 @@ section[data-testid="stSidebar"] {
 }
 
 section[data-testid="stSidebar"] * {
-    color: white !important;
-}
-
-/* Sidebar headers */
-section[data-testid="stSidebar"] h1,
-section[data-testid="stSidebar"] h2,
-section[data-testid="stSidebar"] h3 {
-    font-family: 'Cherry Cream Soda', system-ui !important;
     color: white !important;
 }
 
@@ -119,7 +103,7 @@ div[role="option"] {
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 
-/* Number inputs */
+/* Inputs */
 input {
     border: 2px solid #c99700 !important;
     border-radius: 8px !important;
@@ -138,6 +122,11 @@ label {
     background-color: white;
     border: 2px solid #c99700;
     border-radius: 10px;
+}
+
+/* Nice section spacing */
+.block-container {
+    padding-top: 2rem;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -159,24 +148,27 @@ col_left, col_center, col_right = st.columns([1, 6, 1])
 
 with col_center:
     st.markdown("""
-        <h1 style='text-align:center; margin-bottom:0.2rem;'>
+        <h1 style='
+            text-align:center;
+            margin-bottom:0.2rem;
+            color:#450084;
+            font-family:"Cherry Cream Soda", system-ui;
+            font-weight:400;'>
         Engineering Theater Capstone Stress Analysis App
         </h1>
     """, unsafe_allow_html=True)
 
     st.markdown("""
-        <p style='text-align:center;
-                  font-size:1.05rem;
-                  color:#666;
-                  margin-top:0;
-                  margin-bottom:1rem;
-                  font-family:"Cherry Cream Soda", system-ui;'>
+        <p style='
+            text-align:center;
+            font-size:1.05rem;
+            color:#666;
+            margin-top:0;
+            margin-bottom:1rem;
+            font-family:"Cherry Cream Soda", system-ui;'>
         Purple and gold engineering analysis tool
         </p>
     """, unsafe_allow_html=True)
-
-    if os.path.exists("crossmember.png"):
-        st.image("crossmember.png", use_container_width=True)
 
 # ---------- Sidebar Units ----------
 st.sidebar.header("Unit settings")
@@ -187,24 +179,41 @@ moment_unit = st.sidebar.selectbox("Moment unit", ["ft-lb", "Nm", "kNm", "kip-ft
 stress_unit = st.sidebar.selectbox("Stress unit", ["ksi", "MPa", "psi", "Pa"], index=0)
 density_unit = st.sidebar.selectbox("Density unit", ["kg/m3", "g/cm3", "lb/ft3"], index=2)
 
-# ---------- Inputs ----------
-col1, col2 = st.columns(2)
+st.markdown("---")
 
-with col1:
-    st.subheader("Geometry")
+# ---------- Section 1: Geometry ----------
+st.subheader("Geometry")
+
+geo_left, geo_right = st.columns([1, 1])
+
+with geo_left:
     b_val = st.number_input("Width b", value=3.0, min_value=0.0001, format="%.4f")
     h_val = st.number_input("Thickness h", value=0.25, min_value=0.0001, format="%.4f")
     L_val = st.number_input("Member span L", value=20.0, min_value=0.0001, format="%.4f")
     d_val = st.number_input("Pin-hole diameter d", value=1.0, min_value=0.0, format="%.4f")
     edge_offset_val = st.number_input("Distance from left edge to left hole", value=0.75, min_value=0.0, format="%.4f")
 
-    st.subheader("Material")
+with geo_right:
+    if os.path.exists("crossmember.png"):
+        img_left, img_center, img_right = st.columns([0.15, 9.7, 0.15])
+        with img_center:
+            st.image("crossmember.png", use_container_width=True)
+
+st.markdown("---")
+
+# ---------- Section 2: Material and Configuration ----------
+st.subheader("Material and Configuration")
+
+config_left, config_right = st.columns([1, 1])
+
+with config_left:
+    st.markdown("#### Material")
     rho_val = st.number_input("Material density", value=490.0, min_value=0.0001, format="%.4f")
     Sy_val = st.number_input("Yield strength", value=36.0, min_value=0.0001, format="%.4f")
     Kt_P = st.number_input("Kt_P", value=2.0, min_value=0.0, format="%.3f")
 
-with col2:
-    st.subheader("Configuration")
+with config_right:
+    st.markdown("#### Lift Configuration")
     theta_deg = st.slider("Scissor angle θ", 1, 89, 15)
     n = st.slider("Stages n", 1, 10, 1)
 
@@ -219,7 +228,11 @@ with col2:
         }[x]
     )
 
-    P_val = Mz_val = Mx_val = My_val = dep_val = 0.0
+    P_val = 0.0
+    Mz_val = 0.0
+    Mx_val = 0.0
+    My_val = 0.0
+    dep_val = 0.0
 
     if sit == 1:
         P_val = st.number_input("Payload P", value=225.0, min_value=0.0, format="%.4f")
@@ -232,29 +245,35 @@ with col2:
         My_val = st.number_input("Moment My", value=100.0, min_value=0.0, format="%.4f")
         dep_val = st.number_input("Spacing dep", value=6.0, min_value=0.0001, format="%.4f")
 
-    st.subheader("Cross Bracing")
+    st.markdown("#### Cross Bracing")
     use_cb = st.checkbox("Include cross bracing", value=False)
 
-    cb_outer_val = cb_len_val = cb_t_val = None
+    cb_outer_val = None
+    cb_len_val = None
+    cb_t_val = None
 
     if use_cb:
         cb_outer_val = st.number_input("Cross-brace outer width/height", value=1.0, min_value=0.0001, format="%.4f")
         cb_len_val = st.number_input("Cross-brace length", value=18.0, min_value=0.0001, format="%.4f")
         cb_t_val = st.number_input("Cross-brace wall thickness", value=0.065, min_value=0.0001, format="%.4f")
 
-# ---------- Sweep ----------
+st.markdown("---")
+
+# ---------- Section 3: Tube Sweep ----------
 st.subheader("Tube Sweep")
 
-c1, c2, c3, c4 = st.columns(4)
+s1, s2, s3, s4 = st.columns(4)
 
-with c1:
+with s1:
     tube_t_min_val = st.number_input("Min t", value=0.065, min_value=0.0001, format="%.4f")
-with c2:
+with s2:
     tube_t_max_val = st.number_input("Max t", value=0.250, min_value=0.0001, format="%.4f")
-with c3:
+with s3:
     tube_t_step_val = st.number_input("Step t", value=0.020, min_value=0.0001, format="%.4f")
-with c4:
+with s4:
     SF_target = st.number_input("Target SF", value=1.20, min_value=0.0001, format="%.3f")
+
+st.markdown("---")
 
 # ---------- Run Analysis ----------
 try:
@@ -309,12 +328,15 @@ try:
         SF_target=SF_target,
     )
 
+    # ---------- Section 4: Results ----------
     st.subheader("Results")
 
-    a, bcol, c = st.columns(3)
-    a.metric("Von Mises", f"{stress_from_Pa(results['solid_sigma_vm'], stress_unit):.3f} {stress_unit}")
-    bcol.metric("Safety Factor", f"{results['solid_SF']:.3f}")
-    c.metric("Status", "YIELDS" if results["solid_yields"] else "OK")
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Von Mises", f"{stress_from_Pa(results['solid_sigma_vm'], stress_unit):.3f} {stress_unit}")
+    m2.metric("Safety Factor", f"{results['solid_SF']:.3f}")
+    m3.metric("Status", "YIELDS" if results["solid_yields"] else "OK")
+
+    st.markdown("#### Tube Candidates")
 
     rows = []
     for r in results["tube_rows"]:
@@ -327,12 +349,9 @@ try:
 
     if rows:
         df = pd.DataFrame(rows)
-
-        st.subheader("Tube Candidates")
         st.dataframe(df, use_container_width=True, hide_index=True)
 
         x_col = f"t ({length_unit})"
-
         chart = (
             alt.Chart(df)
             .mark_line(point=alt.OverlayMarkDef(size=100, filled=True))
@@ -343,8 +362,22 @@ try:
             )
             .properties(height=400)
         )
-
         st.altair_chart(chart, use_container_width=True)
+
+    st.markdown("#### Viable Options")
+
+    viable_rows = []
+    for r in results["tube_viable"]:
+        viable_rows.append({
+            f"t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
+            "mass (kg)": round(r["mass_kg"], 4),
+            "SF": round(r["SF"], 4),
+        })
+
+    if viable_rows:
+        st.dataframe(pd.DataFrame(viable_rows), use_container_width=True, hide_index=True)
+    else:
+        st.info("No options meet target safety factor.")
 
 except Exception as e:
     st.error(f"Error: {e}")
