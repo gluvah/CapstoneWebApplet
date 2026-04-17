@@ -1,6 +1,5 @@
 import os
 import math
-import io
 import pandas as pd
 import altair as alt
 import matplotlib.pyplot as plt
@@ -132,10 +131,10 @@ label {
     padding-top: 2rem;
 }
 
-/* Sliders: make both active and inactive tracks purple */
+/* Slider colors */
 .stSlider [data-baseweb="slider"] [role="slider"] {
     background-color: #a56de2 !important;
-    border: 2px solid #a56de2 !important;
+    border-color: #a56de2 !important;
     box-shadow: none !important;
 }
 
@@ -146,22 +145,6 @@ label {
 .stSlider [data-baseweb="slider"] > div > div > div > div {
     background: #b68cf0 !important;
 }
-
-.stSlider [data-baseweb="slider"] * {
-    accent-color: #a56de2 !important;
-}
-
-/* Fixed-width visualization wrapper */
-.viz-title-wrap {
-    width: 430px;
-    margin: 0 auto 0.35rem auto;
-    text-align: center;
-}
-
-.viz-card-wrap {
-    width: 430px;
-    margin: 0 auto;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -169,6 +152,7 @@ label {
 def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
     """
     Draw a vertically stacked scissor lift side view.
+    Plot stays compact and updates with stage count and angle.
     """
     theta_deg = max(1, min(89, theta_deg))
     theta = math.radians(theta_deg)
@@ -184,9 +168,7 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
     purple_dark = "#450084"
     gold = "#C99700"
 
-    fig, ax = plt.subplots(figsize=(4.3, 5.8), dpi=200)
-    fig.patch.set_facecolor("white")
-    ax.set_facecolor("white")
+    fig, ax = plt.subplots(figsize=(3.6, 3.9), dpi=200)
 
     # Base
     ax.plot([0, width], [0, 0], color=purple_dark, linewidth=1.8)
@@ -225,15 +207,8 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
         loc="center"
     )
 
-    fig.tight_layout(pad=0.5)
+    fig.tight_layout(pad=0.3)
     return fig
-
-
-def fig_to_png_bytes(fig):
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=200, bbox_inches="tight", facecolor=fig.get_facecolor())
-    buf.seek(0)
-    return buf.getvalue()
 
 # ---------- Sidebar Logos ----------
 logo1 = "logo.png"
@@ -369,28 +344,24 @@ with config_left:
         cb_t_val = st.number_input("Cross-brace wall thickness", value=0.065, min_value=0.0001, format="%.4f")
 
 with config_right:
-    st.markdown(
-        """
-        <div class="viz-title-wrap">
+    left_pad, center_block, right_pad = st.columns([1.2, 1.6, 1.2])
+
+    with center_block:
+        st.markdown(
+            """
             <h4 style="
                 text-align:center;
-                margin:0;
+                margin:0 0 0.6rem 0;
                 color:#111111;">
                 Live Scissor Visualization
             </h4>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+            """,
+            unsafe_allow_html=True
+        )
 
-    viz_fig = draw_scissor_lift_vertical(n_stages=n, theta_deg=theta_deg)
-    viz_png = fig_to_png_bytes(viz_fig)
-
-    st.markdown('<div class="viz-card-wrap">', unsafe_allow_html=True)
-    st.image(viz_png, width=430)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    plt.close(viz_fig)
+        viz_fig = draw_scissor_lift_vertical(n_stages=n, theta_deg=theta_deg)
+        st.pyplot(viz_fig, use_container_width=True)
+        plt.close(viz_fig)
 
 st.markdown("---")
 
