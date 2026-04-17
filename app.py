@@ -11,7 +11,6 @@ from logic import (
     convert_force_to_N,
     convert_moment_to_Nm,
     convert_stress_to_Pa,
-    convert_density_to_kg_m3,
     stress_from_Pa,
     length_from_m,
 )
@@ -24,9 +23,7 @@ st.set_page_config(
 # ---------- Display formatting helpers ----------
 def fmt_sig(value, sig=3):
     """
-    Format values to roughly sig significant figures with commas when helpful.
-    Keeps normal decimal format for most values and only uses scientific notation
-    for extremely small or extremely large magnitudes.
+    Format values to ~3 significant figures with commas and no scientific notation.
     """
     if value is None:
         return "-"
@@ -37,19 +34,32 @@ def fmt_sig(value, sig=3):
 
     a = abs(value)
 
-    if a < 1e-3 or a >= 1e6:
-        return f"{value:.{sig}g}"
-
-    digits_before = int(math.floor(math.log10(a))) + 1
+    digits_before = int(math.floor(math.log10(a))) + 1 if a >= 1 else 0
     decimals = max(sig - digits_before, 0)
+
+    if a < 1:
+        decimals = max(sig + int(abs(math.floor(math.log10(a)))) - 1, sig)
+
     return f"{value:,.{decimals}f}"
 
 def latex_num(value, sig=3):
     """
-    Same idea as fmt_sig, but escapes commas for LaTeX.
+    Same formatting as fmt_sig, but escapes commas for LaTeX.
     """
     s = fmt_sig(value, sig)
     return s.replace(",", "{,}")
+
+def convert_density_local(value, unit):
+    if unit == "kg/m3":
+        return value
+    elif unit == "g/cm3":
+        return value * 1000.0
+    elif unit == "lb/ft3":
+        return value * 16.0184634
+    elif unit == "lb/in3":
+        return value * 27679.9047
+    else:
+        raise ValueError("Unsupported density unit")
 
 # ---------- Theme / Fonts ----------
 st.markdown("""
@@ -308,7 +318,7 @@ length_unit = st.sidebar.selectbox("Length units used throughout the report", ["
 force_unit = st.sidebar.selectbox("Force units for applied loading", ["lbf", "N", "kN", "kip"], index=0)
 moment_unit = st.sidebar.selectbox("Moment units for overturning cases", ["ft-lb", "Nm", "kNm", "kip-ft"], index=0)
 stress_unit = st.sidebar.selectbox("Stress units for displayed results", ["ksi", "MPa", "psi", "Pa"], index=0)
-density_unit = st.sidebar.selectbox("Material density units", ["kg/m3", "g/cm3", "lb/ft3"], index=2)
+density_unit = st.sidebar.selectbox("Material density units", ["kg/m3", "g/cm3", "lb/ft3", "lb/in3"], index=2)
 
 st.markdown("---")
 
@@ -440,7 +450,7 @@ try:
     d_m = convert_length_to_m(d_val, length_unit)
     edge_offset_m = convert_length_to_m(edge_offset_val, length_unit)
 
-    rho_kg_m3 = convert_density_to_kg_m3(rho_val, density_unit)
+    rho_kg_m3 = convert_density_local(rho_val, density_unit)
     Sy_Pa = convert_stress_to_Pa(Sy_val, stress_unit)
 
     P_N_user = convert_force_to_N(P_val, force_unit) if sit == 1 else 0.0
@@ -624,10 +634,10 @@ try:
                 x=alt.X(x_col, title=x_col),
                 y=alt.Y("Factor of safety", title="Factor of Safety"),
                 tooltip=[
-                    alt.Tooltip(x_col, format=",.3g"),
-                    alt.Tooltip("Resulting member mass (kg)", format=",.3g"),
-                    alt.Tooltip(f"Von Mises stress ({stress_unit})", format=",.3g"),
-                    alt.Tooltip("Factor of safety", format=",.3g"),
+                    alt.Tooltip(x_col, format=",.3f"),
+                    alt.Tooltip("Resulting member mass (kg)", format=",.3f"),
+                    alt.Tooltip(f"Von Mises stress ({stress_unit})", format=",.3f"),
+                    alt.Tooltip("Factor of safety", format=",.3f"),
                 ]
             )
             .properties(height=400)
