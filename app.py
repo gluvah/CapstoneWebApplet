@@ -136,9 +136,7 @@ label {
 # ---------- Helper: live scissor visualization ----------
 def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
     """
-    Draw a vertically stacked scissor lift side view.
-    Each stage is one X stacked above the previous stage.
-    Plot size stays visually consistent as n changes.
+    Compact fixed-size scissor lift visualization.
     """
     theta_deg = max(1, min(89, theta_deg))
     theta = math.radians(theta_deg)
@@ -154,46 +152,42 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
     purple_dark = "#450084"
     gold = "#C99700"
 
-    # Fixed figure size
-    fig, ax = plt.subplots(figsize=(6.5, 5.0))
+    # Smaller figure
+    fig, ax = plt.subplots(figsize=(4.8, 4.2), dpi=120)
 
-    # base
-    ax.plot([0, width], [0, 0], color=purple_dark, linewidth=3)
+    # Thin base
+    ax.plot([0, width], [0, 0], color=purple_dark, linewidth=2)
 
-    # stacked X stages
+    # Stages
     for i in range(n_stages):
         y0 = 2 * i * dy
         y1 = y0 + 2 * dy
 
-        ax.plot([0, width], [y0, y1], color=purple, linewidth=3)
-        ax.plot([0, width], [y1, y0], color=purple, linewidth=3)
+        ax.plot([0, width], [y0, y1], color=purple, linewidth=2)
+        ax.plot([0, width], [y1, y0], color=purple, linewidth=2)
 
         # center pin
-        ax.plot([dx], [y0 + dy], marker='o', markersize=6, color=gold)
-
-        # end pins
-        ax.plot([0, width], [y0, y0], linestyle='None', marker='o', markersize=5, color=purple_dark)
-        ax.plot([0, width], [y1, y1], linestyle='None', marker='o', markersize=5, color=purple_dark)
+        ax.plot([dx], [y0 + dy], marker='o', markersize=4, color=gold)
 
     # top platform
-    platform_pad = 0.15 * width
+    pad = 0.12 * width
     ax.plot(
-        [-platform_pad, width + platform_pad],
+        [-pad, width + pad],
         [total_height, total_height],
         color=purple_dark,
-        linewidth=4
+        linewidth=2.4
     )
 
-    # ---- fixed viewing window so chart does not grow wildly ----
-    max_stages_for_view = 10
-    max_theta_for_view = math.radians(89)
-    max_height_view = 2 * max_stages_for_view * member_length * math.sin(max_theta_for_view)
+    # Fixed viewport
+    max_stages = 10
+    max_height = 2 * max_stages * member_length * math.sin(math.radians(89))
 
-    ax.set_aspect('equal')
-    ax.set_xlim(-0.35, width + 0.35)
-    ax.set_ylim(-0.25, max_height_view + 0.45)
+    ax.set_xlim(-0.25, width + 0.25)
+    ax.set_ylim(-0.15, max_height + 0.25)
+
+    ax.set_aspect("equal")
     ax.axis("off")
-    ax.set_title(f"{n_stages} stage(s), θ = {theta_deg}°", fontsize=14, color=purple_dark)
+    ax.set_title(f"{n_stages} stage(s), θ = {theta_deg}°", fontsize=11, color=purple_dark, pad=6)
 
     return fig
 
