@@ -119,6 +119,7 @@ label {
     padding-top: 2rem;
 }
 
+/* Slider colors */
 .stSlider [data-baseweb="slider"] [role="slider"] {
     background-color: #a56de2 !important;
     border-color: #a56de2 !important;
@@ -132,13 +133,33 @@ label {
 .stSlider [data-baseweb="slider"] > div > div > div > div {
     background: #b68cf0 !important;
 }
+
+/* Expander / math spacing */
+div[data-testid="stExpander"] details {
+    overflow: visible !important;
+}
+
+div[data-testid="stExpander"] details summary {
+    overflow: visible !important;
+    white-space: normal !important;
+}
+
+div[data-testid="stExpander"] .katex-display {
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+}
+
+div[data-testid="stExpander"] [data-testid="stMarkdownContainer"] {
+    overflow: visible !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # ---------- Helper: axial stress concentration factor ----------
 def axial_kt_from_ratio(x: float) -> float:
     return 2.95 - 2.855 * x + 3.410 * x**2 - 1.678 * x**3
-
 
 # ---------- Helper: live scissor visualization ----------
 def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
@@ -191,18 +212,12 @@ def draw_scissor_lift_vertical(n_stages: int, theta_deg: float):
     fig.tight_layout(pad=0.3)
     return fig
 
-
 # ---------- Helper: equation display ----------
 def show_step(title: str, general_eq: str, substituted_eq: str, result_eq: str):
     st.markdown(f"#### {title}")
     st.latex(general_eq)
     st.latex(substituted_eq)
     st.latex(result_eq)
-
-
-def fmt_unit_value(value: float, unit: str) -> str:
-    return f"{value:.6g} {unit}"
-
 
 # ---------- Sidebar Logos ----------
 logo1 = "logo.png"
@@ -442,7 +457,110 @@ try:
     m2.metric("Safety Factor", f"{results['solid_SF']:.3f}")
     m3.metric("Status", "YIELDS" if results["solid_yields"] else "OK")
 
-    with st.expander("Show detailed calculations and intermediate values", expanded=False):
+    st.markdown("---")
+
+    # ---------- Tube evaluation and sweep ----------
+    st.subheader("Tube Evaluation and Sweep")
+
+    s1, s2, s3, s4 = st.columns(4)
+
+    with s1:
+        tube_t_min_val = st.number_input("Min t", value=0.065, min_value=0.0001, format="%.4f")
+    with s2:
+        tube_t_max_val = st.number_input("Max t", value=0.250, min_value=0.0001, format="%.4f")
+    with s3:
+        tube_t_step_val = st.number_input("Step t", value=0.020, min_value=0.0001, format="%.4f")
+    with s4:
+        SF_target = st.number_input("Target SF", value=1.20, min_value=0.0001, format="%.3f")
+
+    tube_t_min_m = convert_length_to_m(tube_t_min_val, length_unit)
+    tube_t_max_m = convert_length_to_m(tube_t_max_val, length_unit)
+    tube_t_step_m = convert_length_to_m(tube_t_step_val, length_unit)
+
+    tube_results = analyze_system(
+        b_m=b_m,
+        h_m=h_m,
+        L_m=L_m,
+        d_m=d_m,
+        edge_offset_m=edge_offset_m,
+        rho_kg_m3=rho_kg_m3,
+        Kt_P=Kt_P,
+        Kt_M=2.0,
+        Kt_tau=2.0,
+        theta_deg=theta_deg,
+        n=n,
+        sit=sit,
+        Sy_Pa=Sy_Pa,
+        P_N_user=P_N_user,
+        Mz_Nm=Mz_Nm,
+        Mx_Nm=Mx_Nm,
+        My_Nm=My_Nm,
+        dep_m=dep_m,
+        cb_outer_m=cb_outer_m,
+        cb_len_m=cb_len_m,
+        cb_t_m=cb_t_m,
+        tube_t_min_m=tube_t_min_m,
+        tube_t_max_m=tube_t_max_m,
+        tube_t_step_m=tube_t_step_m,
+        SF_target=SF_target,
+    )
+
+    with st.expander("Tube sweep details", expanded=False):
+        sweep_df = pd.DataFrame([
+            {"Quantity": "Min t", "Value": tube_t_min_val, "Unit": length_unit},
+            {"Quantity": "Max t", "Value": tube_t_max_val, "Unit": length_unit},
+            {"Quantity": "Step t", "Value": tube_t_step_val, "Unit": length_unit},
+            {"Quantity": "Target safety factor", "Value": SF_target, "Unit": "-"},
+        ])
+        st.dataframe(sweep_df, use_container_width=True, hide_index=True)
+
+    st.markdown("#### Tube candidates")
+
+    rows = []
+    for r in tube_results["tube_rows"]:
+        rows.append({
+            f"t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
+            "mass (kg)": round(r["mass_kg"], 4),
+            f"σ_vm ({stress_unit})": round(stress_from_Pa(r["sigma_vm"], stress_unit), 4),
+            "SF": round(r["SF"], 4),
+        })
+
+    if rows:
+        df = pd.DataFrame(rows)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+
+        x_col = f"t ({length_unit})"
+        chart = (
+            alt.Chart(df)
+            .mark_line(point=alt.OverlayMarkDef(size=100, filled=True))
+            .encode(
+                x=alt.X(x_col, title=x_col),
+                y=alt.Y("SF", title="Safety Factor"),
+                tooltip=[x_col, "mass (kg)", f"σ_vm ({stress_unit})", "SF"]
+            )
+            .properties(height=400)
+        )
+        st.altair_chart(chart, use_container_width=True)
+
+    st.markdown("#### Viable tube options")
+
+    viable_rows = []
+    for r in tube_results["tube_viable"]:
+        viable_rows.append({
+            f"t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
+            "mass (kg)": round(r["mass_kg"], 4),
+            "SF": round(r["SF"], 4),
+        })
+
+    if viable_rows:
+        st.dataframe(pd.DataFrame(viable_rows), use_container_width=True, hide_index=True)
+    else:
+        st.info("No options meet target safety factor.")
+
+    st.markdown("---")
+
+    # ---------- Detailed calculations at bottom ----------
+    with st.expander("Detailed calculations", expanded=False):
         st.markdown("### Step-by-step solid member calculations")
 
         st.markdown("#### Input summary")
@@ -513,7 +631,6 @@ try:
             rf"A_{{net}}={solid['A_net_report']:.6e}\ \text{{m}}^2"
         )
 
-        # Bending section modulus formula used by logic.py for solid case
         if d_m > 0:
             s_calc = ((b_m**3 - d_m**3) * h_m) / (6.0 * d_m)
             show_step(
@@ -589,106 +706,6 @@ try:
             {"Quantity": "Status", "Value": "YIELDS" if results["solid_yields"] else "OK", "Unit": ""},
         ])
         st.dataframe(final_df, use_container_width=True, hide_index=True)
-
-    st.markdown("---")
-
-    # ---------- Tube evaluation and sweep ----------
-    st.subheader("Tube Evaluation and Sweep")
-
-    s1, s2, s3, s4 = st.columns(4)
-
-    with s1:
-        tube_t_min_val = st.number_input("Min t", value=0.065, min_value=0.0001, format="%.4f")
-    with s2:
-        tube_t_max_val = st.number_input("Max t", value=0.250, min_value=0.0001, format="%.4f")
-    with s3:
-        tube_t_step_val = st.number_input("Step t", value=0.020, min_value=0.0001, format="%.4f")
-    with s4:
-        SF_target = st.number_input("Target SF", value=1.20, min_value=0.0001, format="%.3f")
-
-    tube_t_min_m = convert_length_to_m(tube_t_min_val, length_unit)
-    tube_t_max_m = convert_length_to_m(tube_t_max_val, length_unit)
-    tube_t_step_m = convert_length_to_m(tube_t_step_val, length_unit)
-
-    tube_results = analyze_system(
-        b_m=b_m,
-        h_m=h_m,
-        L_m=L_m,
-        d_m=d_m,
-        edge_offset_m=edge_offset_m,
-        rho_kg_m3=rho_kg_m3,
-        Kt_P=Kt_P,
-        Kt_M=2.0,
-        Kt_tau=2.0,
-        theta_deg=theta_deg,
-        n=n,
-        sit=sit,
-        Sy_Pa=Sy_Pa,
-        P_N_user=P_N_user,
-        Mz_Nm=Mz_Nm,
-        Mx_Nm=Mx_Nm,
-        My_Nm=My_Nm,
-        dep_m=dep_m,
-        cb_outer_m=cb_outer_m,
-        cb_len_m=cb_len_m,
-        cb_t_m=cb_t_m,
-        tube_t_min_m=tube_t_min_m,
-        tube_t_max_m=tube_t_max_m,
-        tube_t_step_m=tube_t_step_m,
-        SF_target=SF_target,
-    )
-
-    with st.expander("Show tube sweep setup and details", expanded=False):
-        sweep_df = pd.DataFrame([
-            {"Quantity": "Min t", "Value": tube_t_min_val, "Unit": length_unit},
-            {"Quantity": "Max t", "Value": tube_t_max_val, "Unit": length_unit},
-            {"Quantity": "Step t", "Value": tube_t_step_val, "Unit": length_unit},
-            {"Quantity": "Target safety factor", "Value": SF_target, "Unit": "-"},
-        ])
-        st.dataframe(sweep_df, use_container_width=True, hide_index=True)
-
-    st.markdown("#### Tube candidates")
-
-    rows = []
-    for r in tube_results["tube_rows"]:
-        rows.append({
-            f"t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
-            "mass (kg)": round(r["mass_kg"], 4),
-            f"σ_vm ({stress_unit})": round(stress_from_Pa(r["sigma_vm"], stress_unit), 4),
-            "SF": round(r["SF"], 4),
-        })
-
-    if rows:
-        df = pd.DataFrame(rows)
-        st.dataframe(df, use_container_width=True, hide_index=True)
-
-        x_col = f"t ({length_unit})"
-        chart = (
-            alt.Chart(df)
-            .mark_line(point=alt.OverlayMarkDef(size=100, filled=True))
-            .encode(
-                x=alt.X(x_col, title=x_col),
-                y=alt.Y("SF", title="Safety Factor"),
-                tooltip=[x_col, "mass (kg)", f"σ_vm ({stress_unit})", "SF"]
-            )
-            .properties(height=400)
-        )
-        st.altair_chart(chart, use_container_width=True)
-
-    st.markdown("#### Viable tube options")
-
-    viable_rows = []
-    for r in tube_results["tube_viable"]:
-        viable_rows.append({
-            f"t ({length_unit})": round(length_from_m(r["t_m"], length_unit), 4),
-            "mass (kg)": round(r["mass_kg"], 4),
-            "SF": round(r["SF"], 4),
-        })
-
-    if viable_rows:
-        st.dataframe(pd.DataFrame(viable_rows), use_container_width=True, hide_index=True)
-    else:
-        st.info("No options meet target safety factor.")
 
 except Exception as e:
     st.error(f"Error: {e}")
