@@ -166,7 +166,9 @@ with col_center:
     """, unsafe_allow_html=True)
 
     if os.path.exists("crossmember.png"):
-        st.image("crossmember.png", use_container_width=True)
+        img_left, img_center, img_right = st.columns([0.5, 7, 0.5])
+        with img_center:
+            st.image("crossmember.png", width=1100)
 
 # ---------- Sidebar Units ----------
 st.sidebar.header("Unit settings")
