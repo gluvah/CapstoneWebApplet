@@ -1,6 +1,8 @@
-import os
+import osimport os
+import math
 import pandas as pd
 import altair as alt
+import matplotlib.pyplot as plt
 import streamlit as st
 
 from logic import (
@@ -131,6 +133,59 @@ label {
 </style>
 """, unsafe_allow_html=True)
 
+# ---------- Helper: live scissor visualization ----------
+def draw_scissor_lift(n_stages: int, theta_deg: float, show_bracing: bool = False):
+    """
+    Draw a simple 2D side-view scissor lift.
+    Each stage is one X made from equal-length members.
+    """
+    theta_deg = max(1, min(89, theta_deg))
+    theta = math.radians(theta_deg)
+
+    member_length = 1.0
+    dx = member_length * math.cos(theta)
+    dy = member_length * math.sin(theta)
+
+    total_width = 2 * n_stages * dx
+    total_height = 2 * dy
+
+    fig, ax = plt.subplots(figsize=(8, 4.8))
+
+    # base and platform
+    ax.plot([0, total_width], [0, 0], linewidth=2.5)
+    ax.plot([0, total_width], [total_height, total_height], linewidth=2.5)
+
+    # scissor stages
+    for i in range(n_stages):
+        x0 = 2 * i * dx
+        x1 = x0 + 2 * dx
+
+        # bottom-left to top-right
+        ax.plot([x0, x1], [0, total_height], linewidth=2.5)
+
+        # top-left to bottom-right
+        ax.plot([x0, x1], [total_height, 0], linewidth=2.5)
+
+        # center pin
+        ax.plot([x0 + dx], [dy], marker='o', markersize=5)
+
+    # end pins
+    ax.plot([0, total_width], [0, 0], linestyle='None', marker='o', markersize=5)
+    ax.plot([0, total_width], [total_height, total_height], linestyle='None', marker='o', markersize=5)
+
+    # optional cross-bracing visual cue
+    if show_bracing and n_stages > 1:
+        ax.plot([0, total_width], [0, total_height], linestyle='--', linewidth=1.6)
+        ax.plot([0, total_width], [total_height, 0], linestyle='--', linewidth=1.6)
+
+    ax.set_aspect('equal')
+    ax.set_xlim(-0.15 * max(total_width, 1), total_width + 0.15 * max(total_width, 1))
+    ax.set_ylim(-0.25, max(total_height + 0.35, 1.0))
+    ax.axis("off")
+    ax.set_title(f"{n_stages} stage(s), θ = {theta_deg}°", fontsize=12)
+
+    return fig
+
 # ---------- Sidebar Logos ----------
 logo1 = "logo.png"
 logo2 = "logo2.png"
@@ -256,6 +311,11 @@ with config_right:
         cb_outer_val = st.number_input("Cross-brace outer width/height", value=1.0, min_value=0.0001, format="%.4f")
         cb_len_val = st.number_input("Cross-brace length", value=18.0, min_value=0.0001, format="%.4f")
         cb_t_val = st.number_input("Cross-brace wall thickness", value=0.065, min_value=0.0001, format="%.4f")
+
+    st.markdown("#### Live Scissor Visualization")
+    viz_fig = draw_scissor_lift(n_stages=n, theta_deg=theta_deg, show_bracing=use_cb)
+    st.pyplot(viz_fig, use_container_width=True)
+    plt.close(viz_fig)
 
 st.markdown("---")
 
