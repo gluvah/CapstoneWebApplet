@@ -948,6 +948,64 @@ The largest absolute internal shear force and bending moment from the statics so
             rf"M_{{max}} = {latex_num(solid['M_abs_max_lbf_in'])}\ \text{{lbf·in}}"
         )
 
+        # ---------- Shear & Moment Diagrams ----------
+        st.markdown("#### 12a. Shear and moment diagrams along the beam")
+        st.caption(
+            "These diagrams show how the internal shear force V(x) and bending moment M(x) vary "
+            "along the pin-to-pin span of the member. The dashed red lines mark the peak absolute values "
+            "used in the stress calculations above."
+        )
+
+        xs_plot = solid["xs_in"]
+        V_plot  = solid["V_lbf"]
+        M_plot  = solid["M_lbf_in"]
+
+        purple      = "#5E2CA5"
+        purple_dark = "#450084"
+        gold        = "#C99700"
+        red_dash    = "#c0392b"
+
+        fig_vm, (ax_v, ax_m) = plt.subplots(
+            2, 1, figsize=(8, 5), dpi=150, sharex=True,
+            gridspec_kw={"hspace": 0.45}
+        )
+        fig_vm.patch.set_facecolor("#faf8f5")
+
+        # -- Shear diagram --
+        ax_v.set_facecolor("#faf8f5")
+        ax_v.fill_between(xs_plot, V_plot, 0, alpha=0.18, color=purple)
+        ax_v.plot(xs_plot, V_plot, color=purple_dark, linewidth=1.8)
+        ax_v.axhline(0, color="#888888", linewidth=0.7, linestyle="--")
+        V_peak = solid["V_abs_max_lbf"]
+        ax_v.axhline( V_peak, color=red_dash, linewidth=0.9, linestyle="--", label=f"±{fmt_sig(V_peak)} lbf")
+        ax_v.axhline(-V_peak, color=red_dash, linewidth=0.9, linestyle="--")
+        ax_v.set_ylabel("V  (lbf)", fontsize=9, color=purple_dark, fontweight="bold")
+        ax_v.set_title("Shear Force Diagram  V(x)", fontsize=10, color=purple_dark, fontweight="bold", pad=6)
+        ax_v.legend(fontsize=8, framealpha=0.7, loc="upper right")
+        ax_v.tick_params(labelsize=8)
+        for spine in ax_v.spines.values():
+            spine.set_edgecolor("#cccccc")
+
+        # -- Moment diagram --
+        ax_m.set_facecolor("#faf8f5")
+        ax_m.fill_between(xs_plot, M_plot, 0, alpha=0.18, color=gold)
+        ax_m.plot(xs_plot, M_plot, color="#b07d00", linewidth=1.8)
+        ax_m.axhline(0, color="#888888", linewidth=0.7, linestyle="--")
+        M_peak = solid["M_abs_max_lbf_in"]
+        ax_m.axhline( M_peak, color=red_dash, linewidth=0.9, linestyle="--", label=f"±{fmt_sig(M_peak)} lbf·in")
+        ax_m.axhline(-M_peak, color=red_dash, linewidth=0.9, linestyle="--")
+        ax_m.set_ylabel("M  (lbf·in)", fontsize=9, color="#8a6200", fontweight="bold")
+        ax_m.set_xlabel("Position along member  x  (in)", fontsize=9, color="#444444")
+        ax_m.set_title("Bending Moment Diagram  M(x)", fontsize=10, color="#8a6200", fontweight="bold", pad=6)
+        ax_m.legend(fontsize=8, framealpha=0.7, loc="upper right")
+        ax_m.tick_params(labelsize=8)
+        for spine in ax_m.spines.values():
+            spine.set_edgecolor("#cccccc")
+
+        fig_vm.tight_layout(pad=1.2)
+        st.pyplot(fig_vm, use_container_width=True)
+        plt.close(fig_vm)
+
         show_step(
             "13. Nominal axial stress",
             r"\sigma_{nom,P}=\frac{P}{A_{net}}",
