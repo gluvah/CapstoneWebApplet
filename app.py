@@ -277,31 +277,6 @@ def show_step(title: str, general_eq: str, substituted_eq: str, result_eq: str):
     st.latex(result_eq)
 
 
-# ---------- Helper: shear/moment plots ----------
-def draw_shear_diagram(xs_in, V_lbf):
-    fig, ax = plt.subplots(figsize=(8, 3.3), dpi=180)
-    ax.plot(xs_in, V_lbf, linewidth=2)
-    ax.axhline(0, linewidth=1)
-    ax.set_title("Shear Diagram")
-    ax.set_xlabel("Position along member (in)")
-    ax.set_ylabel("V (lbf)")
-    ax.grid(True, alpha=0.3)
-    fig.tight_layout()
-    return fig
-
-
-def draw_moment_diagram(xs_in, M_lbf_in):
-    fig, ax = plt.subplots(figsize=(8, 3.3), dpi=180)
-    ax.plot(xs_in, M_lbf_in, linewidth=2)
-    ax.axhline(0, linewidth=1)
-    ax.set_title("Moment Diagram")
-    ax.set_xlabel("Position along member (in)")
-    ax.set_ylabel("M (lbf·in)")
-    ax.grid(True, alpha=0.3)
-    fig.tight_layout()
-    return fig
-
-
 # ---------- Sidebar Logos ----------
 logo1 = "logo.png"
 logo2 = "logo2.png"
@@ -749,7 +724,164 @@ try:
         ])
         st.dataframe(si_df, use_container_width=True, hide_index=True)
 
-        st.markdown("#### 4. Statics results used by the solid member calculation")
+        show_step(
+            "4. Net area used for axial stress",
+            r"A_{net}=(b-d)h",
+            rf"A_{{net}}=({latex_num(b_m)}-{latex_num(d_m)})({latex_num(h_m)})",
+            rf"A_{{net}}={latex_num(solid['A_net_report'])}\ \text{{m}}^2"
+        )
+
+        if d_m > 0:
+            s_calc = ((b_m**3 - d_m**3) * h_m) / (6.0 * d_m)
+            show_step(
+                "5. Section modulus used for bending",
+                r"S=\frac{(b^3-d^3)h}{6d}",
+                rf"S=\frac{{({latex_num(b_m)}^3-{latex_num(d_m)}^3)({latex_num(h_m)})}}{{6({latex_num(d_m)})}}",
+                rf"S={latex_num(s_calc)}\ \text{{m}}^3"
+            )
+
+        st.markdown("### How the reaction forces are found for the selected loading case")
+        st.markdown(
+            """
+Before the app can compute axial stress, bending stress, or Von Mises stress, it first solves for the force components at the top pin, middle pin, and bottom pin of the member.
+
+Those solved quantities are:
+
+- `Xt, Yt` = top-end force components  
+- `Xm, Ym` = middle-pin force components  
+- `Xb, Yb` = bottom-end force components  
+
+The exact equations depend on the selected loading case.
+"""
+        )
+
+        W_member_lbf = solid["W_lbf"]
+        W_crossbrace_member_lbf = solid.get("W_crossbrace_member_lbf", 0.0)
+        P_eff_lbf = (P_N_user / 4.44822) + W_crossbrace_member_lbf
+        L_pin_in = solid["L_pin_in"]
+        Mz_lbf_in = Mz_Nm / (4.44822 * 0.0254) if sit == 2 else 0.0
+        Mx_lbf_in = Mx_Nm / (4.44822 * 0.0254) if sit == 6 else 0.0
+        My_lbf_in = My_Nm / (4.44822 * 0.0254) if sit == 7 else 0.0
+        dep_in = dep_m / 0.0254 if sit in [6, 7] else 0.0
+
+        if sit == 1:
+            st.markdown("#### 6. Loading case 1: centered vertical payload")
+
+            show_step(
+                "6a. Effective vertical load used in the statics equations",
+                r"P_{eff}=P+W_{cross\ brace}",
+                rf"P_{{eff}}={latex_num(P_N_user/4.44822)}+{latex_num(W_crossbrace_member_lbf)}",
+                rf"P_{{eff}}={latex_num(P_eff_lbf)}\ \text{{lbf}}"
+            )
+
+            show_step(
+                "6b. Vertical reactions",
+                r"Y_t=\frac{1}{4}\left(P_{eff}+(n-1)W\right),\quad Y_m=0,\quad Y_b=\frac{1}{4}\left(P_{eff}+nW\right)",
+                rf"Y_t=\frac{{1}}{{4}}\left({latex_num(P_eff_lbf)}+({latex_num(n)}-1){latex_num(W_member_lbf)}\right),\quad "
+                rf"Y_m=0,\quad "
+                rf"Y_b=\frac{{1}}{{4}}\left({latex_num(P_eff_lbf)}+{latex_num(n)}{latex_num(W_member_lbf)}\right)",
+                rf"Y_t={latex_num(solid['forces']['Yt'])}\ \text{{lbf}},\quad "
+                rf"Y_m={latex_num(solid['forces']['Ym'])}\ \text{{lbf}},\quad "
+                rf"Y_b={latex_num(solid['forces']['Yb'])}\ \text{{lbf}}"
+            )
+
+            show_step(
+                "6c. Horizontal reactions",
+                r"X_t=\frac{1}{2}\left(P_{eff}+\frac{1}{2}(n-1)W\right)\frac{(n-1)}{\tan\theta}",
+                rf"X_t=\frac{{1}}{{2}}\left({latex_num(P_eff_lbf)}+\frac{{1}}{{2}}({latex_num(n)}-1){latex_num(W_member_lbf)}\right)\frac{{({latex_num(n)}-1)}}{{\tan({latex_num(theta_deg)})}}",
+                rf"X_t={latex_num(solid['forces']['Xt'])}\ \text{{lbf}}"
+            )
+
+            show_step(
+                "6d. Middle horizontal reaction",
+                r"X_m=\frac{1}{4}(2n-1)\frac{P_{eff}}{\tan\theta}+\frac{1}{4}(2n^2-2n+1)\frac{W}{\tan\theta}",
+                rf"X_m=\frac{{1}}{{4}}(2({latex_num(n)})-1)\frac{{{latex_num(P_eff_lbf)}}}{{\tan({latex_num(theta_deg)})}}"
+                rf"+\frac{{1}}{{4}}(2({latex_num(n)})^2-2({latex_num(n)})+1)\frac{{{latex_num(W_member_lbf)}}}{{\tan({latex_num(theta_deg)})}}",
+                rf"X_m={latex_num(solid['forces']['Xm'])}\ \text{{lbf}}"
+            )
+
+            show_step(
+                "6e. Bottom horizontal reaction",
+                r"X_b=\frac{1}{2}\left(P_{eff}+\frac{1}{2}nW\right)\frac{n}{\tan\theta}",
+                rf"X_b=\frac{{1}}{{2}}\left({latex_num(P_eff_lbf)}+\frac{{1}}{{2}}({latex_num(n)}){latex_num(W_member_lbf)}\right)\frac{{{latex_num(n)}}}{{\tan({latex_num(theta_deg)})}}",
+                rf"X_b={latex_num(solid['forces']['Xb'])}\ \text{{lbf}}"
+            )
+
+        elif sit == 2:
+            st.markdown("#### 6. Loading case 2: overturning moment about the z-axis")
+
+            show_step(
+                "6a. Vertical reactions from applied moment",
+                r"Y_m=\frac{M_z}{L\cos\theta},\quad Y_t=\frac{M_z}{2L\cos\theta},\quad Y_b=\frac{M_z}{2L\cos\theta}",
+                rf"Y_m=\frac{{{latex_num(Mz_lbf_in)}}}{{{latex_num(L_pin_in)}\cos({latex_num(theta_deg)})}},\quad "
+                rf"Y_t=\frac{{{latex_num(Mz_lbf_in)}}}{{2({latex_num(L_pin_in)})\cos({latex_num(theta_deg)})}},\quad "
+                rf"Y_b=\frac{{{latex_num(Mz_lbf_in)}}}{{2({latex_num(L_pin_in)})\cos({latex_num(theta_deg)})}}",
+                rf"Y_m={latex_num(solid['forces']['Ym'])}\ \text{{lbf}},\quad "
+                rf"Y_t={latex_num(solid['forces']['Yt'])}\ \text{{lbf}},\quad "
+                rf"Y_b={latex_num(solid['forces']['Yb'])}\ \text{{lbf}}"
+            )
+
+            show_step(
+                "6b. Horizontal reactions",
+                r"X_t=X_m=X_b=0",
+                r"X_t=X_m=X_b=0",
+                rf"X_t={latex_num(solid['forces']['Xt'])}\ \text{{lbf}},\quad "
+                rf"X_m={latex_num(solid['forces']['Xm'])}\ \text{{lbf}},\quad "
+                rf"X_b={latex_num(solid['forces']['Xb'])}\ \text{{lbf}}"
+            )
+
+        elif sit == 6:
+            st.markdown("#### 6. Loading case 6: overturning moment about the x-axis")
+
+            show_step(
+                "6a. End vertical reactions",
+                r"Y_{end}=\frac{M_x}{2\,dep},\quad Y_t=Y_b=Y_{end},\quad Y_m=0",
+                rf"Y_{{end}}=\frac{{{latex_num(Mx_lbf_in)}}}{{2({latex_num(dep_in)})}},\quad "
+                rf"Y_t=Y_b=Y_{{end}},\quad Y_m=0",
+                rf"Y_t={latex_num(solid['forces']['Yt'])}\ \text{{lbf}},\quad "
+                rf"Y_m={latex_num(solid['forces']['Ym'])}\ \text{{lbf}},\quad "
+                rf"Y_b={latex_num(solid['forces']['Yb'])}\ \text{{lbf}}"
+            )
+
+            show_step(
+                "6b. Horizontal reactions",
+                r"X_t=X_m=X_b=0",
+                r"X_t=X_m=X_b=0",
+                rf"X_t={latex_num(solid['forces']['Xt'])}\ \text{{lbf}},\quad "
+                rf"X_m={latex_num(solid['forces']['Xm'])}\ \text{{lbf}},\quad "
+                rf"X_b={latex_num(solid['forces']['Xb'])}\ \text{{lbf}}"
+            )
+
+        elif sit == 7:
+            st.markdown("#### 6. Loading case 7: overturning moment about the y-axis")
+
+            show_step(
+                "6a. Shared denominator",
+                r"D=L^2\cos^2\theta+dep^2",
+                rf"D=({latex_num(L_pin_in)})^2\cos^2({latex_num(theta_deg)})+({latex_num(dep_in)})^2",
+                rf"D={latex_num(L_pin_in**2 * (math.cos(math.radians(theta_deg))**2) + dep_in**2)}"
+            )
+
+            show_step(
+                "6b. Horizontal end reactions",
+                r"X=\frac{M_y\,dep}{2\left(L^2\cos^2\theta+dep^2\right)},\quad X_t=X_b=X,\quad X_m=0",
+                rf"X=\frac{{{latex_num(My_lbf_in)}({latex_num(dep_in)})}}{{2\left(({latex_num(L_pin_in)})^2\cos^2({latex_num(theta_deg)})+({latex_num(dep_in)})^2\right)}},\quad "
+                rf"X_t=X_b=X,\quad X_m=0",
+                rf"X_t={latex_num(solid['forces']['Xt'])}\ \text{{lbf}},\quad "
+                rf"X_m={latex_num(solid['forces']['Xm'])}\ \text{{lbf}},\quad "
+                rf"X_b={latex_num(solid['forces']['Xb'])}\ \text{{lbf}}"
+            )
+
+            show_step(
+                "6c. Vertical reactions",
+                r"Y_t=Y_m=Y_b=0",
+                r"Y_t=Y_m=Y_b=0",
+                rf"Y_t={latex_num(solid['forces']['Yt'])}\ \text{{lbf}},\quad "
+                rf"Y_m={latex_num(solid['forces']['Ym'])}\ \text{{lbf}},\quad "
+                rf"Y_b={latex_num(solid['forces']['Yb'])}\ \text{{lbf}}"
+            )
+
+        st.markdown("#### 7. Reaction forces used by the solid member calculation")
         forces = solid["forces"]
         statics_df = pd.DataFrame([
             {"Quantity": "Xt", "Value": fmt_sig(forces["Xt"]), "Unit": "lbf"},
@@ -765,36 +897,13 @@ try:
         ])
         st.dataframe(statics_df, use_container_width=True, hide_index=True)
 
-        show_step(
-            "5. Net area used for axial stress",
-            r"A_{net}=(b-d)h",
-            rf"A_{{net}}=({latex_num(b_m)}-{latex_num(d_m)})({latex_num(h_m)})",
-            rf"A_{{net}}={latex_num(solid['A_net_report'])}\ \text{{m}}^2"
-        )
-
-        if d_m > 0:
-            s_calc = ((b_m**3 - d_m**3) * h_m) / (6.0 * d_m)
-            show_step(
-                "6. Section modulus used for bending",
-                r"S=\frac{(b^3-d^3)h}{6d}",
-                rf"S=\frac{{({latex_num(b_m)}^3-{latex_num(d_m)}^3)({latex_num(h_m)})}}{{6({latex_num(d_m)})}}",
-                rf"S={latex_num(s_calc)}\ \text{{m}}^3"
-            )
-
-        st.markdown("### How the internal loads are created from the statics model")
+        st.markdown("### How the internal loads are created from the solved reactions")
         st.markdown(
             """
-The app does not directly assume the axial force or bending moment.  
-It first solves the lift statics for the selected loading case, then converts those reactions into the internal loads carried by the cross-member.
+Once the reaction components are known, the app sums them into total global x- and y-force components.  
+Those totals are then resolved into the member axis to produce the axial force in the member.
 
-The reactions reported above are:
-
-- `Xt, Yt` at the top connection
-- `Xm, Ym` at the middle connection
-- `Xb, Yb` at the bottom connection
-
-These are summed into global x and y force components, then resolved into the member axis to obtain the axial force.
-The shear and moment diagrams are then generated by stepping along the member span using the statics logic in `shear_moment()`.
+The largest absolute internal shear force and bending moment from the statics solution are then used in the shear-stress and bending-stress calculations.
 """
         )
 
@@ -805,71 +914,49 @@ The shear and moment diagrams are then generated by stepping along the member sp
         axial_force_N = axial_force_lbf * 4.44822
 
         show_step(
-            "7. Total x-force from the solved reactions",
+            "8. Total x-force from the solved reactions",
             r"F_x = X_t + X_m + X_b",
             rf"F_x = {latex_num(forces['Xt'])}+{latex_num(forces['Xm'])}+{latex_num(forces['Xb'])}",
             rf"F_x = {latex_num(Fx_total_lbf)}\ \text{{lbf}}"
         )
 
         show_step(
-            "8. Total y-force from the solved reactions",
+            "9. Total y-force from the solved reactions",
             r"F_y = Y_t + Y_m + Y_b",
             rf"F_y = {latex_num(forces['Yt'])}+{latex_num(forces['Ym'])}+{latex_num(forces['Yb'])}",
             rf"F_y = {latex_num(Fy_total_lbf)}\ \text{{lbf}}"
         )
 
         show_step(
-            "9. Axial force along the member",
+            "10. Axial force along the member",
             r"T = F_x\cos\theta + F_y\sin\theta",
             rf"T = ({latex_num(Fx_total_lbf)})\cos({latex_num(theta_deg)}) + ({latex_num(Fy_total_lbf)})\sin({latex_num(theta_deg)})",
             rf"T = {latex_num(axial_force_lbf)}\ \text{{lbf}} = {latex_num(axial_force_N)}\ \text{{N}}"
         )
 
-        st.markdown(
-            """
-This axial member force is what the code uses as `P` in the axial stress equation.  
-So the app is not using the applied platform load directly for axial stress. It first maps the platform loading into member force through the scissor-lift statics.
-"""
+        show_step(
+            "11. Maximum internal shear used in the shear-stress calculation",
+            r"V_{max} = \max |V(x)|",
+            r"\text{The statics solution evaluates }V(x)\text{ along the member and keeps the largest absolute value.}",
+            rf"V_{{max}} = {latex_num(solid['V_abs_max_lbf'])}\ \text{{lbf}}"
         )
 
-        xs_in = solid["xs_in"]
-        V_lbf = solid["V_lbf"]
-        M_lbf_in = solid["M_lbf_in"]
-
-        if xs_in and V_lbf and M_lbf_in:
-            st.markdown("#### 10. Shear and moment diagrams from the internal statics solution")
-
-            show_step(
-                "10a. Shear force used for shear stress",
-                r"V_{max} = \max |V(x)|",
-                r"\text{The code evaluates }V(x)\text{ along the member span and keeps the largest absolute value.}",
-                rf"V_{{max}} = {latex_num(solid['V_abs_max_lbf'])}\ \text{{lbf}}"
-            )
-
-            show_step(
-                "10b. Bending moment used for bending stress",
-                r"M_{max} = \max |M(x)|",
-                r"\text{The code evaluates }M(x)\text{ along the member span and keeps the largest absolute value.}",
-                rf"M_{{max}} = {latex_num(solid['M_abs_max_lbf_in'])}\ \text{{lbf·in}}"
-            )
-
-            shear_fig = draw_shear_diagram(xs_in, V_lbf)
-            st.pyplot(shear_fig, use_container_width=True)
-            plt.close(shear_fig)
-
-            moment_fig = draw_moment_diagram(xs_in, M_lbf_in)
-            st.pyplot(moment_fig, use_container_width=True)
-            plt.close(moment_fig)
+        show_step(
+            "12. Maximum internal bending moment used in the bending-stress calculation",
+            r"M_{max} = \max |M(x)|",
+            r"\text{The statics solution evaluates }M(x)\text{ along the member and keeps the largest absolute value.}",
+            rf"M_{{max}} = {latex_num(solid['M_abs_max_lbf_in'])}\ \text{{lbf·in}}"
+        )
 
         show_step(
-            "11. Nominal axial stress",
+            "13. Nominal axial stress",
             r"\sigma_{nom,P}=\frac{P}{A_{net}}",
             rf"\sigma_{{nom,P}}=\frac{{{latex_num(axial_force_N)}}}{{{latex_num(solid['A_net_report'])}}}",
             rf"\sigma_{{nom,P}}={latex_num(solid['sigma_nom_P'])}\ \text{{Pa}}"
         )
 
         show_step(
-            "12. Maximum axial stress",
+            "14. Maximum axial stress",
             r"\sigma_{max,P}=K_t\,\sigma_{nom,P}",
             rf"\sigma_{{max,P}}=({latex_num(Kt_P)})({latex_num(solid['sigma_nom_P'])})",
             rf"\sigma_{{max,P}}={latex_num(solid['sigma_max_P'])}\ \text{{Pa}}"
@@ -877,21 +964,21 @@ So the app is not using the applied platform load directly for axial stress. It 
 
         max_moment_Nm = solid["M_abs_max_lbf_in"] * 4.44822 * 0.0254
         show_step(
-            "13. Nominal bending stress",
+            "15. Nominal bending stress",
             r"\sigma_{nom,M}=\frac{M}{S}",
             rf"\sigma_{{nom,M}}=\frac{{{latex_num(max_moment_Nm)}}}{{{latex_num(solid['S_report'])}}}",
             rf"\sigma_{{nom,M}}={latex_num(solid['sigma_nom_M'])}\ \text{{Pa}}"
         )
 
         show_step(
-            "14. Maximum bending stress",
+            "16. Maximum bending stress",
             r"\sigma_{max,M}=K_{t,M}\,\sigma_{nom,M}",
             rf"\sigma_{{max,M}}=(2.00)({latex_num(solid['sigma_nom_M'])})",
             rf"\sigma_{{max,M}}={latex_num(solid['sigma_max_M'])}\ \text{{Pa}}"
         )
 
         show_step(
-            "15. Combined normal stress",
+            "17. Combined normal stress",
             r"\sigma=\sigma_{max,P}+\sigma_{max,M}",
             rf"\sigma=({latex_num(solid['sigma_max_P'])})+({latex_num(solid['sigma_max_M'])})",
             rf"\sigma={latex_num(solid['sigma_comb'])}\ \text{{Pa}}"
@@ -899,27 +986,27 @@ So the app is not using the applied platform load directly for axial stress. It 
 
         max_shear_N = solid["V_abs_max_lbf"] * 4.44822
         show_step(
-            "16. Maximum shear stress",
+            "18. Maximum shear stress",
             r"\tau=K_{t,\tau}\left(\frac{V}{A_{shear}}\right)",
             rf"\tau=(2.00)\left(\frac{{{latex_num(max_shear_N)}}}{{{latex_num(solid['A_shear_m2'])}}}\right)",
             rf"\tau={latex_num(solid['tau_max'])}\ \text{{Pa}}"
         )
 
         show_step(
-            "17. Von Mises stress",
+            "19. Von Mises stress",
             r"\sigma_{vm}=\sqrt{\sigma^2+3\tau^2}",
             rf"\sigma_{{vm}}=\sqrt{{({latex_num(solid['sigma_comb'])})^2+3({latex_num(solid['tau_max'])})^2}}",
             rf"\sigma_{{vm}}={latex_num(results['solid_sigma_vm'])}\ \text{{Pa}}"
         )
 
         show_step(
-            "18. Safety factor",
+            "20. Safety factor",
             r"SF=\frac{S_y}{\sigma_{vm}}",
             rf"SF=\frac{{{latex_num(Sy_Pa)}}}{{{latex_num(results['solid_sigma_vm'])}}}",
             rf"SF={latex_num(results['solid_SF'])}"
         )
 
-        st.markdown("#### 19. Final solid member values")
+        st.markdown("#### 21. Final solid member values")
         final_df = pd.DataFrame([
             {"Quantity": "Von Mises stress", "Value": fmt_sig(stress_from_Pa(results["solid_sigma_vm"], stress_unit)), "Unit": stress_unit},
             {"Quantity": "Safety factor", "Value": fmt_sig(results["solid_SF"]), "Unit": "-"},
