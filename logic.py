@@ -49,6 +49,7 @@ def convert_moment_to_Nm(value: float, unit: str) -> float:
         "ft-lb": LBFFT2NM,
         "lbft": LBFFT2NM,
         "kip-ft": KIP2N * FT2M,
+        "lb*in": LBFIN2NM,
     }
     return value * factors[unit]
 
