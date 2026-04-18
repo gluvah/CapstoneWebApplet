@@ -758,12 +758,7 @@ try:
             "4. Net area used for axial stress",
             r"A_{net}=(b-d)h",
             rf"A_{{net}}=({latex_num(b_m)}-{latex_num(d_m)})({latex_num(h_m)})",
-            show_step(
-    "4. Net area used for axial stress",
-    r"A_{net}=(b-d)h",
-    rf"A_{{net}}=({latex_num(b_val)}-{latex_num(d_val)})({latex_num(h_val)})",
-    rf"A_{{net}}={latex_num((b_val - d_val) * h_val)}\ \text{{{length_unit}}}^2"
-)
+            rf"A_{{net}}={latex_num(solid['A_net_report'])}\ \text{{m}}^2"
         )
 
         if d_m > 0:
