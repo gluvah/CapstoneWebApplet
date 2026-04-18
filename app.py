@@ -64,6 +64,34 @@ def convert_density_local(value, unit):
         raise ValueError("Unsupported density unit")
 
 
+def force_from_lbf_local(value_lbf, unit):
+    factors = {
+        "lbf": 1.0,
+        "N": 4.44822,
+        "kN": 4.44822 / 1000.0,
+        "kip": 1.0 / 1000.0,
+    }
+    return value_lbf * factors[unit]
+
+
+def moment_from_lbf_in_local(value_lbf_in, unit):
+    if unit == "ft-lb":
+        return value_lbf_in / 12.0
+    elif unit == "Nm":
+        return value_lbf_in * 4.44822 * 0.0254
+    elif unit == "kNm":
+        return value_lbf_in * 4.44822 * 0.0254 / 1000.0
+    elif unit == "kip-ft":
+        return value_lbf_in / 12000.0
+    else:
+        raise ValueError("Unsupported moment unit")
+
+
+def length_from_in_local(value_in, unit):
+    value_m = value_in * 0.0254
+    return length_from_m(value_m, unit)
+
+
 # ---------- Theme / Fonts ----------
 st.markdown("""
 <style>
@@ -631,7 +659,7 @@ try:
                 "Factor of safety": r["SF"],
             })
 
-        chart_df = pd.DataFrame(chart_rows)
+            chart_df = pd.DataFrame(chart_rows)
         x_col = f"Tube wall thickness, t ({length_unit})"
         chart = (
             alt.Chart(chart_df)
@@ -956,14 +984,17 @@ The largest absolute internal shear force and bending moment from the statics so
             "used in the stress calculations above."
         )
 
-        xs_plot = solid["xs_in"]
-        V_plot  = solid["V_lbf"]
-        M_plot  = solid["M_lbf_in"]
+        xs_plot = [length_from_in_local(x, length_unit) for x in solid["xs_in"]]
+        V_plot = [force_from_lbf_local(v, force_unit) for v in solid["V_lbf"]]
+        M_plot = [moment_from_lbf_in_local(m, moment_unit) for m in solid["M_lbf_in"]]
 
-        purple      = "#5E2CA5"
+        V_peak = force_from_lbf_local(solid["V_abs_max_lbf"], force_unit)
+        M_peak = moment_from_lbf_in_local(solid["M_abs_max_lbf_in"], moment_unit)
+
+        purple = "#5E2CA5"
         purple_dark = "#450084"
-        gold        = "#C99700"
-        red_dash    = "#c0392b"
+        gold = "#C99700"
+        red_dash = "#c0392b"
 
         fig_vm, (ax_v, ax_m) = plt.subplots(
             2, 1, figsize=(8, 5), dpi=150, sharex=True,
@@ -976,10 +1007,9 @@ The largest absolute internal shear force and bending moment from the statics so
         ax_v.fill_between(xs_plot, V_plot, 0, alpha=0.18, color=purple)
         ax_v.plot(xs_plot, V_plot, color=purple_dark, linewidth=1.8)
         ax_v.axhline(0, color="#888888", linewidth=0.7, linestyle="--")
-        V_peak = solid["V_abs_max_lbf"]
-        ax_v.axhline( V_peak, color=red_dash, linewidth=0.9, linestyle="--", label=f"±{fmt_sig(V_peak)} lbf")
+        ax_v.axhline(V_peak, color=red_dash, linewidth=0.9, linestyle="--", label=f"±{fmt_sig(V_peak)} {force_unit}")
         ax_v.axhline(-V_peak, color=red_dash, linewidth=0.9, linestyle="--")
-        ax_v.set_ylabel("V  (lbf)", fontsize=9, color=purple_dark, fontweight="bold")
+        ax_v.set_ylabel(f"V  ({force_unit})", fontsize=9, color=purple_dark, fontweight="bold")
         ax_v.set_title("Shear Force Diagram  V(x)", fontsize=10, color=purple_dark, fontweight="bold", pad=6)
         ax_v.legend(fontsize=8, framealpha=0.7, loc="upper right")
         ax_v.tick_params(labelsize=8)
@@ -991,11 +1021,10 @@ The largest absolute internal shear force and bending moment from the statics so
         ax_m.fill_between(xs_plot, M_plot, 0, alpha=0.18, color=gold)
         ax_m.plot(xs_plot, M_plot, color="#b07d00", linewidth=1.8)
         ax_m.axhline(0, color="#888888", linewidth=0.7, linestyle="--")
-        M_peak = solid["M_abs_max_lbf_in"]
-        ax_m.axhline( M_peak, color=red_dash, linewidth=0.9, linestyle="--", label=f"±{fmt_sig(M_peak)} lbf·in")
+        ax_m.axhline(M_peak, color=red_dash, linewidth=0.9, linestyle="--", label=f"±{fmt_sig(M_peak)} {moment_unit}")
         ax_m.axhline(-M_peak, color=red_dash, linewidth=0.9, linestyle="--")
-        ax_m.set_ylabel("M  (lbf·in)", fontsize=9, color="#8a6200", fontweight="bold")
-        ax_m.set_xlabel("Position along member  x  (in)", fontsize=9, color="#444444")
+        ax_m.set_ylabel(f"M  ({moment_unit})", fontsize=9, color="#8a6200", fontweight="bold")
+        ax_m.set_xlabel(f"Position along member  x  ({length_unit})", fontsize=9, color="#444444")
         ax_m.set_title("Bending Moment Diagram  M(x)", fontsize=10, color="#8a6200", fontweight="bold", pad=6)
         ax_m.legend(fontsize=8, framealpha=0.7, loc="upper right")
         ax_m.tick_params(labelsize=8)
