@@ -306,7 +306,7 @@ with col_center:
             margin-top:0;
             margin-bottom:1rem;
             font-family:"Cherry Cream Soda", system-ui;'>
-        A transparent analysis tool for evaluating solid-member stresses and exploring lighter tube alternatives.
+        A transparent analysis tool for evaluating solid-member stresses and exploring lighter tube alternatives. Designed by Michael Glover with the help of Nathan Gustavson and Josh Kunkel.
         </p>
     """, unsafe_allow_html=True)
 
