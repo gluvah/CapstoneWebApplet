@@ -757,6 +757,7 @@ try:
         show_step(
             "4. Net area used for axial stress",
             r"A_{net}=(b-d)h",
+            rf"A_{{net}}=({latex_num(b_m)}-{latex_num(d_m)})({latex_num(h_m)})",
             show_step(
     "4. Net area used for axial stress",
     r"A_{net}=(b-d)h",
