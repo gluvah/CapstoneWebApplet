@@ -761,8 +761,8 @@ try:
             rf"K_t={latex_num(Kt_P)}"
         )
 
-        area_unit = f"{length_unit}^2"
-        section_modulus_unit = f"{length_unit}^3"
+        area_unit = length_unit
+        section_modulus_unit = length_unit
 
         st.markdown("#### 3. Converted values used in the calculations")
         calc_df = pd.DataFrame([
@@ -786,7 +786,7 @@ try:
             "4. Net area used for axial stress",
             r"A_{net}=(b-d)h",
             rf"A_{{net}}=({latex_num(b_val)}-{latex_num(d_val)})({latex_num(h_val)})",
-            rf"A_{{net}}={latex_num(A_net_disp)}\ \text{{{area_unit}}}"
+            rf"A_{{net}}={latex_num(A_net_disp)}\ \text{{{area_unit}}}^2"
         )
 
         if d_m > 0:
@@ -795,7 +795,7 @@ try:
                 "5. Section modulus used for bending",
                 r"S=\frac{(b^3-d^3)h}{6d}",
                 rf"S=\frac{{({latex_num(b_val)}^3-{latex_num(d_val)}^3)({latex_num(h_val)})}}{{6({latex_num(d_val)})}}",
-                rf"S={latex_num(s_calc_disp)}\ \text{{{section_modulus_unit}}}"
+                rf"S={latex_num(s_calc_disp)}\ \text{{{section_modulus_unit}}}^3"
             )
 
         st.markdown("### How the reaction forces are found for the selected loading case")
