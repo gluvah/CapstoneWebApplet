@@ -94,6 +94,30 @@ def length_from_in_local(value_in, unit):
     return length_from_m(value_m, unit)
 
 
+def area_from_m2_local(value_m2, unit):
+    factors = {
+        "mm": 1000.0 ** 2,
+        "cm": 100.0 ** 2,
+        "m": 1.0,
+        "in": 39.37007874015748 ** 2,
+    }
+    return value_m2 * factors[unit]
+
+
+def volume_from_m3_local(value_m3, unit):
+    factors = {
+        "mm": 1000.0 ** 3,
+        "cm": 100.0 ** 3,
+        "m": 1.0,
+        "in": 39.37007874015748 ** 3,
+    }
+    return value_m3 * factors[unit]
+
+
+def section_modulus_from_m3_local(value_m3, unit):
+    return volume_from_m3_local(value_m3, unit)
+
+
 # ---------- Theme / Fonts ----------
 st.markdown("""
 <style>
@@ -737,37 +761,41 @@ try:
             rf"K_t={latex_num(Kt_P)}"
         )
 
-        st.markdown("#### 3. Converted SI values")
-        si_df = pd.DataFrame([
-            {"Quantity": "b", "Value": fmt_sig(b_m), "Unit": "m"},
-            {"Quantity": "h", "Value": fmt_sig(h_m), "Unit": "m"},
-            {"Quantity": "L", "Value": fmt_sig(L_m), "Unit": "m"},
-            {"Quantity": "d", "Value": fmt_sig(d_m), "Unit": "m"},
-            {"Quantity": "Edge offset", "Value": fmt_sig(edge_offset_m), "Unit": "m"},
-            {"Quantity": "Density", "Value": fmt_sig(rho_kg_m3), "Unit": "kg/m^3"},
-            {"Quantity": "Yield strength", "Value": fmt_sig(Sy_Pa), "Unit": "Pa"},
-            {"Quantity": "P", "Value": fmt_sig(P_N_user), "Unit": "N"},
-            {"Quantity": "Mz", "Value": fmt_sig(Mz_Nm), "Unit": "N·m"},
-            {"Quantity": "Mx", "Value": fmt_sig(Mx_Nm), "Unit": "N·m"},
-            {"Quantity": "My", "Value": fmt_sig(My_Nm), "Unit": "N·m"},
-            {"Quantity": "dep", "Value": fmt_sig(dep_m), "Unit": "m"},
-        ])
-        st.dataframe(si_df, use_container_width=True, hide_index=True)
+        area_unit = f"{length_unit}^2"
+        section_modulus_unit = f"{length_unit}^3"
 
+        st.markdown("#### 3. Converted values used in the calculations")
+        calc_df = pd.DataFrame([
+            {"Quantity": "b", "Value": fmt_sig(b_val), "Unit": length_unit},
+            {"Quantity": "h", "Value": fmt_sig(h_val), "Unit": length_unit},
+            {"Quantity": "L", "Value": fmt_sig(L_val), "Unit": length_unit},
+            {"Quantity": "d", "Value": fmt_sig(d_val), "Unit": length_unit},
+            {"Quantity": "Edge offset", "Value": fmt_sig(edge_offset_val), "Unit": length_unit},
+            {"Quantity": "Density", "Value": fmt_sig(rho_val), "Unit": density_unit},
+            {"Quantity": "Yield strength", "Value": fmt_sig(Sy_val), "Unit": stress_unit},
+            {"Quantity": "P", "Value": fmt_sig(P_val), "Unit": force_unit},
+            {"Quantity": "Mz", "Value": fmt_sig(Mz_val), "Unit": moment_unit},
+            {"Quantity": "Mx", "Value": fmt_sig(Mx_val), "Unit": moment_unit},
+            {"Quantity": "My", "Value": fmt_sig(My_val), "Unit": moment_unit},
+            {"Quantity": "dep", "Value": fmt_sig(dep_val), "Unit": length_unit},
+        ])
+        st.dataframe(calc_df, use_container_width=True, hide_index=True)
+
+        A_net_disp = area_from_m2_local(solid['A_net_report'], length_unit)
         show_step(
             "4. Net area used for axial stress",
             r"A_{net}=(b-d)h",
-            rf"A_{{net}}=({latex_num(b_m)}-{latex_num(d_m)})({latex_num(h_m)})",
-            rf"A_{{net}}={latex_num(solid['A_net_report'])}\ \text{{m}}^2"
+            rf"A_{{net}}=({latex_num(b_val)}-{latex_num(d_val)})({latex_num(h_val)})",
+            rf"A_{{net}}={latex_num(A_net_disp)}\ \text{{{area_unit}}}"
         )
 
         if d_m > 0:
-            s_calc = ((b_m**3 - d_m**3) * h_m) / (6.0 * d_m)
+            s_calc_disp = section_modulus_from_m3_local(solid['S_report'], length_unit)
             show_step(
                 "5. Section modulus used for bending",
                 r"S=\frac{(b^3-d^3)h}{6d}",
-                rf"S=\frac{{({latex_num(b_m)}^3-{latex_num(d_m)}^3)({latex_num(h_m)})}}{{6({latex_num(d_m)})}}",
-                rf"S={latex_num(s_calc)}\ \text{{m}}^3"
+                rf"S=\frac{{({latex_num(b_val)}^3-{latex_num(d_val)}^3)({latex_num(h_val)})}}{{6({latex_num(d_val)})}}",
+                rf"S={latex_num(s_calc_disp)}\ \text{{{section_modulus_unit}}}"
             )
 
         st.markdown("### How the reaction forces are found for the selected loading case")
@@ -955,7 +983,9 @@ The largest absolute internal shear force and bending moment from the statics so
         Fy_total_lbf = forces["Yt"] + forces["Ym"] + forces["Yb"]
         theta_rad = math.radians(theta_deg)
         axial_force_lbf = Fx_total_lbf * math.cos(theta_rad) + Fy_total_lbf * math.sin(theta_rad)
-        axial_force_N = axial_force_lbf * 4.44822
+        A_net_disp = area_from_m2_local(solid["A_net_report"], length_unit)
+        S_disp = section_modulus_from_m3_local(solid["S_report"], length_unit) if not math.isnan(solid["S_report"]) else float("nan")
+        A_shear_disp = area_from_m2_local(solid["A_shear_m2"], length_unit)
 
         show_step(
             "8. Total x-force from the solved reactions",
@@ -1056,7 +1086,7 @@ The largest absolute internal shear force and bending moment from the statics so
         show_step(
             "13. Nominal axial stress",
             r"\sigma_{nom,P}=\frac{P}{A_{net}}",
-            rf"\sigma_{{nom,P}}=\frac{{{latex_num(axial_force_N)}}}{{{latex_num(solid['A_net_report'])}}}",
+            rf"\sigma_{{nom,P}}=\frac{{{latex_num(disp_f(axial_force_lbf))}}}{{{latex_num(A_net_disp)}}}",
             rf"\sigma_{{nom,P}}={latex_num(stress_from_Pa(solid['sigma_nom_P'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
@@ -1067,11 +1097,10 @@ The largest absolute internal shear force and bending moment from the statics so
             rf"\sigma_{{max,P}}={latex_num(stress_from_Pa(solid['sigma_max_P'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
-        max_moment_Nm = solid["M_abs_max_lbf_in"] * 4.44822 * 0.0254
         show_step(
             "15. Nominal bending stress",
             r"\sigma_{nom,M}=\frac{M}{S}",
-            rf"\sigma_{{nom,M}}=\frac{{{latex_num(max_moment_Nm)}}}{{{latex_num(solid['S_report'])}}}",
+            rf"\sigma_{{nom,M}}=\frac{{{latex_num(disp_m(solid['M_abs_max_lbf_in']))}}}{{{latex_num(S_disp)}}}",
             rf"\sigma_{{nom,M}}={latex_num(stress_from_Pa(solid['sigma_nom_M'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
@@ -1089,11 +1118,10 @@ The largest absolute internal shear force and bending moment from the statics so
             rf"\sigma={latex_num(stress_from_Pa(solid['sigma_comb'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
-        max_shear_N = solid["V_abs_max_lbf"] * 4.44822
         show_step(
             "18. Maximum shear stress",
             r"\tau=K_{t,\tau}\left(\frac{V}{A_{shear}}\right)",
-            rf"\tau=(2.00)\left(\frac{{{latex_num(max_shear_N)}}}{{{latex_num(solid['A_shear_m2'])}}}\right)",
+            rf"\tau=(2.00)\left(\frac{{{latex_num(disp_f(solid['V_abs_max_lbf']))}}}{{{latex_num(A_shear_disp)}}}\right)",
             rf"\tau={latex_num(stress_from_Pa(solid['tau_max'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
