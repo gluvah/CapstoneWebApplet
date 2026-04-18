@@ -131,25 +131,23 @@ def shear_moment(
     dx_in: float = 0.1
 ) -> Tuple[List[float], List[float], List[float]]:
     nsteps = int(round(L_in / dx_in)) + 1
-    xs = [i * dx_in for i in range(nsteps)]
+    xs = [k * dx_in for k in range(nsteps)]
+    w = (w_total_lbf / L_in) * cosd(theta_deg)
     V = []
     M = []
-    i = 0.0
-    while i < L_in:
-        w = (w_total_lbf / L_in) * cosd(theta_deg)
-        if i <= L_in / 2.0:
-            V_i = -Xt * sind(theta_deg) - Yt * cosd(theta_deg) - w * i
-            M_i = (-Xt * sind(theta_deg) - Yt * cosd(theta_deg)) * i - 0.5 * w * (i ** 2)
-        if i >= L_in / 2.0:
-            V_i = -Xt * sind(theta_deg) - Yt * cosd(theta_deg) + Xm * sind(theta_deg) + Ym * cosd(theta_deg) - w * i
+    for x in xs:
+        if x <= L_in / 2.0:
+            V_i = -Xt * sind(theta_deg) - Yt * cosd(theta_deg) - w * x
+            M_i = (-Xt * sind(theta_deg) - Yt * cosd(theta_deg)) * x - 0.5 * w * (x ** 2)
+        else:
+            V_i = -Xt * sind(theta_deg) - Yt * cosd(theta_deg) + Xm * sind(theta_deg) + Ym * cosd(theta_deg) - w * x
             M_i = (
                 (-Xt * sind(theta_deg) - Yt * cosd(theta_deg) + Xm * sind(theta_deg) + Ym * cosd(theta_deg))
-                * (i - L_in)
-                - 0.5 * w * (i ** 2 - L_in ** 2)
+                * (x - L_in)
+                - 0.5 * w * (x ** 2 - L_in ** 2)
             )
         V.append(V_i)
         M.append(M_i)
-        i += dx_in
     return xs, V, M
 
 
