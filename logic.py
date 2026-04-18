@@ -136,15 +136,16 @@ def shear_moment(
     M = []
     i = 0.0
     while i < L_in:
+        w = (w_total_lbf / L_in) * cosd(theta_deg)
         if i <= L_in / 2.0:
-            V_i = -Xt * sind(theta_deg) - Yt * cosd(theta_deg) - (w_total_lbf / 4 / L_in) * cosd(theta_deg) * i
-            M_i = (-Xt * sind(theta_deg) - Yt * cosd(theta_deg)) * i - ((w_total_lbf / 8 / L_in) * cosd(theta_deg) * (i ** 2))
+            V_i = -Xt * sind(theta_deg) - Yt * cosd(theta_deg) - w * i
+            M_i = (-Xt * sind(theta_deg) - Yt * cosd(theta_deg)) * i - 0.5 * w * (i ** 2)
         if i >= L_in / 2.0:
-            V_i = -Xt * sind(theta_deg) - Yt * cosd(theta_deg) + Xm * sind(theta_deg) + Ym * cosd(theta_deg) - (w_total_lbf / 4 / L_in) * cosd(theta_deg) * i
+            V_i = -Xt * sind(theta_deg) - Yt * cosd(theta_deg) + Xm * sind(theta_deg) + Ym * cosd(theta_deg) - w * i
             M_i = (
                 (-Xt * sind(theta_deg) - Yt * cosd(theta_deg) + Xm * sind(theta_deg) + Ym * cosd(theta_deg))
                 * (i - L_in)
-                - (w_total_lbf / 8 / L_in) * cosd(theta_deg) * (i ** 2 - L_in ** 2)
+                - 0.5 * w * (i ** 2 - L_in ** 2)
             )
         V.append(V_i)
         M.append(M_i)
@@ -152,13 +153,13 @@ def shear_moment(
     return xs, V, M
 
 
-def situation_1_forces(n: int, P_lbf: float, W_lbf: float, theta_deg: float) -> Tuple[float, float, float, float, float, float]:
-    Yt = 0.25 * (P_lbf + (n - 1) * W_lbf)
+def situation_1_forces(n: int, P_lbf: float, theta_deg: float) -> Tuple[float, float, float, float, float, float]:
+    Yt = 0.25 * P_lbf
     Ym = 0.0
-    Yb = 0.25 * (P_lbf + n * W_lbf)
-    Xt = 0.5 * (P_lbf + 0.5 * (n - 1) * W_lbf) * (n - 1) / tand(theta_deg)
-    Xm = 0.25 * (2 * n - 1) * P_lbf / tand(theta_deg) + 0.25 * ((2 * n ** 2) - 2 * n + 1) * W_lbf / tand(theta_deg)
-    Xb = 0.5 * (P_lbf + 0.5 * n * W_lbf) * n / tand(theta_deg)
+    Yb = 0.25 * P_lbf
+    Xt = 0.5 * P_lbf * (n - 1) / tand(theta_deg)
+    Xm = 0.25 * (2 * n - 1) * P_lbf / tand(theta_deg)
+    Xb = 0.5 * P_lbf * n / tand(theta_deg)
     return Xt, Yt, Xm, Ym, Xb, Yb
 
 
@@ -371,18 +372,22 @@ def run_full_case(
 
     if sit == 1:
         P_eff_lbf = (P_N_user / LBF2N) + cb_W_member_lbf
-        Xt, Yt, Xm, Ym, Xb, Yb = situation_1_forces(n, P_eff_lbf, W_lbf, theta_deg)
+        Xt, Yt, Xm, Ym, Xb, Yb = situation_1_forces(n, P_eff_lbf, theta_deg)
+        w_for_diagram = W_lbf
     elif sit == 2:
         Xt, Yt, Xm, Ym, Xb, Yb = situation_2_forces(Mz_Nm / LBFIN2NM, L_pin, theta_deg)
+        w_for_diagram = 0.0
     elif sit == 6:
         Xt, Yt, Xm, Ym, Xb, Yb = situation_6_forces(Mx_Nm / LBFIN2NM, dep_m / IN2M)
+        w_for_diagram = 0.0
     elif sit == 7:
         Xt, Yt, Xm, Ym, Xb, Yb = situation_7_forces(My_Nm / LBFIN2NM, L_pin, dep_m / IN2M, theta_deg)
+        w_for_diagram = 0.0
     else:
         raise ValueError("Unsupported situation.")
 
     xs_in, V_lbf, M_lbf_in = shear_moment(
-        L_pin, Xt, Yt, Xm, Ym, Xb, Yb, theta_deg, w_total_lbf=W_lbf, dx_in=0.1
+        L_pin, Xt, Yt, Xm, Ym, Xb, Yb, theta_deg, w_total_lbf=w_for_diagram, dx_in=0.1
     )
 
     theta_rad = math.radians(theta_deg)
