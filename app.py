@@ -1032,7 +1032,7 @@ The largest absolute internal shear force and bending moment from the statics so
             spine.set_edgecolor("#cccccc")
 
         fig_vm.tight_layout(pad=1.2)
-        left_spacer, plot_col, right_spacer = st.columns([1.2, 3.6, 1.2])
+        left_spacer, plot_col, right_spacer = st.columns([0.8, 3.2, 0.8])
         with plot_col:
             st.pyplot(fig_vm, use_container_width=True)
         plt.close(fig_vm)
