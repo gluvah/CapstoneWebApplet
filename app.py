@@ -104,6 +104,110 @@ def area_from_m2_local(value_m2, unit):
     return value_m2 * factors[unit]
 
 
+
+
+def length_value_between_units(value, from_unit, to_unit):
+    return length_from_m(convert_length_to_m(value, from_unit), to_unit)
+
+
+def force_value_between_units(value, from_unit, to_unit):
+    return force_from_N(convert_force_to_N(value, from_unit), to_unit)
+
+
+def moment_value_between_units(value, from_unit, to_unit):
+    value_Nm = convert_moment_to_Nm(value, from_unit)
+    if to_unit == "ft-lb":
+        return value_Nm / (4.44822 * 0.3048)
+    elif to_unit == "Nm":
+        return value_Nm
+    elif to_unit == "kNm":
+        return value_Nm / 1000.0
+    elif to_unit == "kip-ft":
+        return value_Nm / (1000.0 * 4.44822 * 0.3048)
+    elif to_unit == "lb*in":
+        return value_Nm / (4.44822 * 0.0254)
+    else:
+        raise ValueError("Unsupported moment unit")
+
+
+def stress_value_between_units(value, from_unit, to_unit):
+    return stress_from_Pa(convert_stress_to_Pa(value, from_unit), to_unit)
+
+
+def density_value_between_units(value, from_unit, to_unit):
+    kg_m3 = convert_density_local(value, from_unit)
+    factors = {
+        "kg/m3": 1.0,
+        "g/cm3": 1000.0,
+        "lb/ft3": 16.0184634,
+        "lb/in3": 27679.9047,
+    }
+    return kg_m3 / factors[to_unit]
+
+
+def initialize_numeric_state():
+    defaults = {
+        "b_input": 3.0,
+        "h_input": 0.25,
+        "L_input": 20.0,
+        "d_input": 1.0,
+        "edge_offset_input": 0.75,
+        "rho_input": 490.0,
+        "Sy_input": 36.0,
+        "P_input": 225.0,
+        "Mz_input": 100.0,
+        "Mx_input": 100.0,
+        "My_input": 100.0,
+        "dep_input": 6.0,
+        "cb_outer_input": 1.0,
+        "cb_len_input": 18.0,
+        "cb_t_input": 0.065,
+        "tube_t_min_input": 0.065,
+        "tube_t_max_input": 0.250,
+        "tube_t_step_input": 0.020,
+        "SF_target_input": 1.20,
+    }
+    for k, v in defaults.items():
+        if k not in st.session_state:
+            st.session_state[k] = v
+
+
+def apply_unit_conversions_if_needed(length_unit, force_unit, moment_unit, stress_unit, density_unit):
+    prev_length = st.session_state.get("prev_length_unit", length_unit)
+    prev_force = st.session_state.get("prev_force_unit", force_unit)
+    prev_moment = st.session_state.get("prev_moment_unit", moment_unit)
+    prev_stress = st.session_state.get("prev_stress_unit", stress_unit)
+    prev_density = st.session_state.get("prev_density_unit", density_unit)
+
+    if prev_length != length_unit:
+        for key in [
+            "b_input", "h_input", "L_input", "d_input", "edge_offset_input",
+            "dep_input", "cb_outer_input", "cb_len_input", "cb_t_input",
+            "tube_t_min_input", "tube_t_max_input", "tube_t_step_input",
+        ]:
+            if key in st.session_state:
+                st.session_state[key] = length_value_between_units(st.session_state[key], prev_length, length_unit)
+
+    if prev_force != force_unit and "P_input" in st.session_state:
+        st.session_state["P_input"] = force_value_between_units(st.session_state["P_input"], prev_force, force_unit)
+
+    if prev_moment != moment_unit:
+        for key in ["Mz_input", "Mx_input", "My_input"]:
+            if key in st.session_state:
+                st.session_state[key] = moment_value_between_units(st.session_state[key], prev_moment, moment_unit)
+
+    if prev_stress != stress_unit and "Sy_input" in st.session_state:
+        st.session_state["Sy_input"] = stress_value_between_units(st.session_state["Sy_input"], prev_stress, stress_unit)
+
+    if prev_density != density_unit and "rho_input" in st.session_state:
+        st.session_state["rho_input"] = density_value_between_units(st.session_state["rho_input"], prev_density, density_unit)
+
+    st.session_state["prev_length_unit"] = length_unit
+    st.session_state["prev_force_unit"] = force_unit
+    st.session_state["prev_moment_unit"] = moment_unit
+    st.session_state["prev_stress_unit"] = stress_unit
+    st.session_state["prev_density_unit"] = density_unit
+
 def volume_from_m3_local(value_m3, unit):
     factors = {
         "mm": 1000.0 ** 3,
@@ -380,6 +484,9 @@ moment_unit = st.sidebar.selectbox("Moment units for overturning cases", ["ft-lb
 stress_unit = st.sidebar.selectbox("Stress units for displayed results", ["ksi", "MPa", "psi", "Pa"], index=0)
 density_unit = st.sidebar.selectbox("Material density units", ["kg/m3", "g/cm3", "lb/ft3", "lb/in3"], index=2)
 
+initialize_numeric_state()
+apply_unit_conversions_if_needed(length_unit, force_unit, moment_unit, stress_unit, density_unit)
+
 st.markdown("---")
 
 # ---------- Section 1: Geometry ----------
@@ -392,11 +499,11 @@ st.caption(
 geo_left, geo_right = st.columns([1, 1])
 
 with geo_left:
-    b_val = st.number_input("Overall member width, b", value=3.0, min_value=0.0001, format="%.4f")
-    h_val = st.number_input("Member thickness, h", value=0.25, min_value=0.0001, format="%.4f")
-    L_val = st.number_input("Total member span, L", value=20.0, min_value=0.0001, format="%.4f")
-    d_val = st.number_input("Pin-hole diameter, d", value=1.0, min_value=0.0, format="%.4f")
-    edge_offset_val = st.number_input("Distance from left edge to the first hole center", value=0.75, min_value=0.0, format="%.4f")
+    b_val = st.number_input("Overall member width, b", min_value=0.0001, format="%.4f", key="b_input")
+    h_val = st.number_input("Member thickness, h", min_value=0.0001, format="%.4f", key="h_input")
+    L_val = st.number_input("Total member span, L", min_value=0.0001, format="%.4f", key="L_input")
+    d_val = st.number_input("Pin-hole diameter, d", min_value=0.0, format="%.4f", key="d_input")
+    edge_offset_val = st.number_input("Distance from left edge to the first hole center", min_value=0.0, format="%.4f", key="edge_offset_input")
 
 with geo_right:
     if os.path.exists("crossmember.png"):
@@ -416,9 +523,9 @@ st.caption(
 mat1, mat2 = st.columns(2)
 
 with mat1:
-    rho_val = st.number_input("Material density", value=490.0, min_value=0.0001, format="%.4f")
+    rho_val = st.number_input("Material density", min_value=0.0001, format="%.4f", key="rho_input")
 with mat2:
-    Sy_val = st.number_input("Material yield strength", value=36.0, min_value=0.0001, format="%.4f")
+    Sy_val = st.number_input("Material yield strength", min_value=0.0001, format="%.4f", key="Sy_input")
 
 st.markdown("---")
 
@@ -453,15 +560,15 @@ with config_left:
     dep_val = 0.0
 
     if sit == 1:
-        P_val = st.number_input("Applied centered payload, P", value=225.0, min_value=0.0, format="%.4f")
+        P_val = st.number_input("Applied centered payload, P", min_value=0.0, format="%.4f", key="P_input")
     elif sit == 2:
-        Mz_val = st.number_input("Applied overturning moment, Mz", value=100.0, min_value=0.0, format="%.4f")
+        Mz_val = st.number_input("Applied overturning moment, Mz", min_value=0.0, format="%.4f", key="Mz_input")
     elif sit == 6:
-        Mx_val = st.number_input("Applied overturning moment, Mx", value=100.0, min_value=0.0, format="%.4f")
-        dep_val = st.number_input("Member spacing used for this loading case, dep", value=6.0, min_value=0.0001, format="%.4f")
+        Mx_val = st.number_input("Applied overturning moment, Mx", min_value=0.0, format="%.4f", key="Mx_input")
+        dep_val = st.number_input("Member spacing used for this loading case, dep", min_value=0.0001, format="%.4f", key="dep_input")
     elif sit == 7:
-        My_val = st.number_input("Applied overturning moment, My", value=100.0, min_value=0.0, format="%.4f")
-        dep_val = st.number_input("Member spacing used for this loading case, dep", value=6.0, min_value=0.0001, format="%.4f")
+        My_val = st.number_input("Applied overturning moment, My", min_value=0.0, format="%.4f", key="My_input")
+        dep_val = st.number_input("Member spacing used for this loading case, dep", min_value=0.0001, format="%.4f", key="dep_input")
 
     st.markdown("#### Cross-bracing assumption")
     use_cb = st.checkbox("Include the self-weight of cross bracing in the load model", value=False)
@@ -471,9 +578,9 @@ with config_left:
     cb_t_val = None
 
     if use_cb:
-        cb_outer_val = st.number_input("Cross-brace outer width/height", value=1.0, min_value=0.0001, format="%.4f")
-        cb_len_val = st.number_input("Cross-brace member length", value=18.0, min_value=0.0001, format="%.4f")
-        cb_t_val = st.number_input("Cross-brace wall thickness", value=0.065, min_value=0.0001, format="%.4f")
+        cb_outer_val = st.number_input("Cross-brace outer width/height", min_value=0.0001, format="%.4f", key="cb_outer_input")
+        cb_len_val = st.number_input("Cross-brace member length", min_value=0.0001, format="%.4f", key="cb_len_input")
+        cb_t_val = st.number_input("Cross-brace wall thickness", min_value=0.0001, format="%.4f", key="cb_t_input")
 
 with config_right:
     left_pad, center_block, right_pad = st.columns([1.2, 1.6, 1.2])
@@ -617,13 +724,13 @@ try:
     s1, s2, s3, s4 = st.columns(4)
 
     with s1:
-        tube_t_min_val = st.number_input("Minimum candidate tube wall thickness", value=0.065, min_value=0.0001, format="%.4f")
+        tube_t_min_val = st.number_input("Minimum candidate tube wall thickness", min_value=0.0001, format="%.4f", key="tube_t_min_input")
     with s2:
-        tube_t_max_val = st.number_input("Maximum candidate tube wall thickness", value=0.250, min_value=0.0001, format="%.4f")
+        tube_t_max_val = st.number_input("Maximum candidate tube wall thickness", min_value=0.0001, format="%.4f", key="tube_t_max_input")
     with s3:
-        tube_t_step_val = st.number_input("Tube wall thickness increment for the sweep", value=0.020, min_value=0.0001, format="%.4f")
+        tube_t_step_val = st.number_input("Tube wall thickness increment for the sweep", min_value=0.0001, format="%.4f", key="tube_t_step_input")
     with s4:
-        SF_target = st.number_input("Required minimum factor of safety", value=1.20, min_value=0.0001, format="%.3f")
+        SF_target = st.number_input("Required minimum factor of safety", min_value=0.0001, format="%.3f", key="SF_target_input")
 
     tube_t_min_m = convert_length_to_m(tube_t_min_val, length_unit)
     tube_t_max_m = convert_length_to_m(tube_t_max_val, length_unit)
