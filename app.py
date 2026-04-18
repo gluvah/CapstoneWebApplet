@@ -83,6 +83,8 @@ def moment_from_lbf_in_local(value_lbf_in, unit):
         return value_lbf_in * 4.44822 * 0.0254 / 1000.0
     elif unit == "kip-ft":
         return value_lbf_in / 12000.0
+    elif unit == "lb*in":
+        return value_lbf_in  # already in lbf·in
     else:
         raise ValueError("Unsupported moment unit")
 
@@ -350,7 +352,7 @@ st.sidebar.caption("These selections control how inputs are entered and how fina
 
 length_unit = st.sidebar.selectbox("Length units used throughout the report", ["in", "mm", "cm", "m"], index=0)
 force_unit = st.sidebar.selectbox("Force units for applied loading", ["lbf", "N", "kN", "kip"], index=0)
-moment_unit = st.sidebar.selectbox("Moment units for overturning cases", ["ft-lb", "Nm", "kNm", "kip-ft"], index=0)
+moment_unit = st.sidebar.selectbox("Moment units for overturning cases", ["ft-lb", "Nm", "kNm", "kip-ft", "lb*in"], index=0)
 stress_unit = st.sidebar.selectbox("Stress units for displayed results", ["ksi", "MPa", "psi", "Pa"], index=0)
 density_unit = st.sidebar.selectbox("Material density units", ["kg/m3", "g/cm3", "lb/ft3", "lb/in3"], index=2)
 
@@ -792,47 +794,61 @@ The exact equations depend on the selected loading case.
         My_lbf_in = My_Nm / (4.44822 * 0.0254) if sit == 7 else 0.0
         dep_in = dep_m / 0.0254 if sit in [6, 7] else 0.0
 
+        # Helpers: convert internal lbf/lbf·in/in values to selected display units
+        def disp_f(v_lbf):
+            return force_from_lbf_local(v_lbf, force_unit)
+
+        def disp_m(v_lbf_in):
+            return moment_from_lbf_in_local(v_lbf_in, moment_unit)
+
+        def disp_l(v_in):
+            return length_from_in_local(v_in, length_unit)
+
+        fu = force_unit
+        mu = moment_unit
+        lu = length_unit
+
         if sit == 1:
             st.markdown("#### 6. Loading case 1: centered vertical payload")
 
             show_step(
                 "6a. Effective vertical load used in the statics equations",
                 r"P_{eff}=P+W_{cross\ brace}",
-                rf"P_{{eff}}={latex_num(P_N_user/4.44822)}+{latex_num(W_crossbrace_member_lbf)}",
-                rf"P_{{eff}}={latex_num(P_eff_lbf)}\ \text{{lbf}}"
+                rf"P_{{eff}}={latex_num(disp_f(P_N_user/4.44822))}+{latex_num(disp_f(W_crossbrace_member_lbf))}",
+                rf"P_{{eff}}={latex_num(disp_f(P_eff_lbf))}\ \text{{{fu}}}"
             )
 
             show_step(
                 "6b. Vertical reactions",
                 r"Y_t=\frac{1}{4}\left(P_{eff}+(n-1)W\right),\quad Y_m=0,\quad Y_b=\frac{1}{4}\left(P_{eff}+nW\right)",
-                rf"Y_t=\frac{{1}}{{4}}\left({latex_num(P_eff_lbf)}+({latex_num(n)}-1){latex_num(W_member_lbf)}\right),\quad "
+                rf"Y_t=\frac{{1}}{{4}}\left({latex_num(disp_f(P_eff_lbf))}+({latex_num(n)}-1){latex_num(disp_f(W_member_lbf))}\right),\quad "
                 rf"Y_m=0,\quad "
-                rf"Y_b=\frac{{1}}{{4}}\left({latex_num(P_eff_lbf)}+{latex_num(n)}{latex_num(W_member_lbf)}\right)",
-                rf"Y_t={latex_num(solid['forces']['Yt'])}\ \text{{lbf}},\quad "
-                rf"Y_m={latex_num(solid['forces']['Ym'])}\ \text{{lbf}},\quad "
-                rf"Y_b={latex_num(solid['forces']['Yb'])}\ \text{{lbf}}"
+                rf"Y_b=\frac{{1}}{{4}}\left({latex_num(disp_f(P_eff_lbf))}+{latex_num(n)}{latex_num(disp_f(W_member_lbf))}\right)",
+                rf"Y_t={latex_num(disp_f(solid['forces']['Yt']))}\ \text{{{fu}}},\quad "
+                rf"Y_m={latex_num(disp_f(solid['forces']['Ym']))}\ \text{{{fu}}},\quad "
+                rf"Y_b={latex_num(disp_f(solid['forces']['Yb']))}\ \text{{{fu}}}"
             )
 
             show_step(
                 "6c. Horizontal reactions",
                 r"X_t=\frac{1}{2}\left(P_{eff}+\frac{1}{2}(n-1)W\right)\frac{(n-1)}{\tan\theta}",
-                rf"X_t=\frac{{1}}{{2}}\left({latex_num(P_eff_lbf)}+\frac{{1}}{{2}}({latex_num(n)}-1){latex_num(W_member_lbf)}\right)\frac{{({latex_num(n)}-1)}}{{\tan({latex_num(theta_deg)})}}",
-                rf"X_t={latex_num(solid['forces']['Xt'])}\ \text{{lbf}}"
+                rf"X_t=\frac{{1}}{{2}}\left({latex_num(disp_f(P_eff_lbf))}+\frac{{1}}{{2}}({latex_num(n)}-1){latex_num(disp_f(W_member_lbf))}\right)\frac{{({latex_num(n)}-1)}}{{\tan({latex_num(theta_deg)})}}",
+                rf"X_t={latex_num(disp_f(solid['forces']['Xt']))}\ \text{{{fu}}}"
             )
 
             show_step(
                 "6d. Middle horizontal reaction",
                 r"X_m=\frac{1}{4}(2n-1)\frac{P_{eff}}{\tan\theta}+\frac{1}{4}(2n^2-2n+1)\frac{W}{\tan\theta}",
-                rf"X_m=\frac{{1}}{{4}}(2({latex_num(n)})-1)\frac{{{latex_num(P_eff_lbf)}}}{{\tan({latex_num(theta_deg)})}}"
-                rf"+\frac{{1}}{{4}}(2({latex_num(n)})^2-2({latex_num(n)})+1)\frac{{{latex_num(W_member_lbf)}}}{{\tan({latex_num(theta_deg)})}}",
-                rf"X_m={latex_num(solid['forces']['Xm'])}\ \text{{lbf}}"
+                rf"X_m=\frac{{1}}{{4}}(2({latex_num(n)})-1)\frac{{{latex_num(disp_f(P_eff_lbf))}}}{{\tan({latex_num(theta_deg)})}}"
+                rf"+\frac{{1}}{{4}}(2({latex_num(n)})^2-2({latex_num(n)})+1)\frac{{{latex_num(disp_f(W_member_lbf))}}}{{\tan({latex_num(theta_deg)})}}",
+                rf"X_m={latex_num(disp_f(solid['forces']['Xm']))}\ \text{{{fu}}}"
             )
 
             show_step(
                 "6e. Bottom horizontal reaction",
                 r"X_b=\frac{1}{2}\left(P_{eff}+\frac{1}{2}nW\right)\frac{n}{\tan\theta}",
-                rf"X_b=\frac{{1}}{{2}}\left({latex_num(P_eff_lbf)}+\frac{{1}}{{2}}({latex_num(n)}){latex_num(W_member_lbf)}\right)\frac{{{latex_num(n)}}}{{\tan({latex_num(theta_deg)})}}",
-                rf"X_b={latex_num(solid['forces']['Xb'])}\ \text{{lbf}}"
+                rf"X_b=\frac{{1}}{{2}}\left({latex_num(disp_f(P_eff_lbf))}+\frac{{1}}{{2}}({latex_num(n)}){latex_num(disp_f(W_member_lbf))}\right)\frac{{{latex_num(n)}}}{{\tan({latex_num(theta_deg)})}}",
+                rf"X_b={latex_num(disp_f(solid['forces']['Xb']))}\ \text{{{fu}}}"
             )
 
         elif sit == 2:
@@ -841,21 +857,21 @@ The exact equations depend on the selected loading case.
             show_step(
                 "6a. Vertical reactions from applied moment",
                 r"Y_m=\frac{M_z}{L\cos\theta},\quad Y_t=\frac{M_z}{2L\cos\theta},\quad Y_b=\frac{M_z}{2L\cos\theta}",
-                rf"Y_m=\frac{{{latex_num(Mz_lbf_in)}}}{{{latex_num(L_pin_in)}\cos({latex_num(theta_deg)})}},\quad "
-                rf"Y_t=\frac{{{latex_num(Mz_lbf_in)}}}{{2({latex_num(L_pin_in)})\cos({latex_num(theta_deg)})}},\quad "
-                rf"Y_b=\frac{{{latex_num(Mz_lbf_in)}}}{{2({latex_num(L_pin_in)})\cos({latex_num(theta_deg)})}}",
-                rf"Y_m={latex_num(solid['forces']['Ym'])}\ \text{{lbf}},\quad "
-                rf"Y_t={latex_num(solid['forces']['Yt'])}\ \text{{lbf}},\quad "
-                rf"Y_b={latex_num(solid['forces']['Yb'])}\ \text{{lbf}}"
+                rf"Y_m=\frac{{{latex_num(disp_m(Mz_lbf_in))}}}{{{latex_num(disp_l(L_pin_in))}\cos({latex_num(theta_deg)})}},\quad "
+                rf"Y_t=\frac{{{latex_num(disp_m(Mz_lbf_in))}}}{{2({latex_num(disp_l(L_pin_in))})\cos({latex_num(theta_deg)})}},\quad "
+                rf"Y_b=\frac{{{latex_num(disp_m(Mz_lbf_in))}}}{{2({latex_num(disp_l(L_pin_in))})\cos({latex_num(theta_deg)})}}",
+                rf"Y_m={latex_num(disp_f(solid['forces']['Ym']))}\ \text{{{fu}}},\quad "
+                rf"Y_t={latex_num(disp_f(solid['forces']['Yt']))}\ \text{{{fu}}},\quad "
+                rf"Y_b={latex_num(disp_f(solid['forces']['Yb']))}\ \text{{{fu}}}"
             )
 
             show_step(
                 "6b. Horizontal reactions",
                 r"X_t=X_m=X_b=0",
                 r"X_t=X_m=X_b=0",
-                rf"X_t={latex_num(solid['forces']['Xt'])}\ \text{{lbf}},\quad "
-                rf"X_m={latex_num(solid['forces']['Xm'])}\ \text{{lbf}},\quad "
-                rf"X_b={latex_num(solid['forces']['Xb'])}\ \text{{lbf}}"
+                rf"X_t={latex_num(disp_f(solid['forces']['Xt']))}\ \text{{{fu}}},\quad "
+                rf"X_m={latex_num(disp_f(solid['forces']['Xm']))}\ \text{{{fu}}},\quad "
+                rf"X_b={latex_num(disp_f(solid['forces']['Xb']))}\ \text{{{fu}}}"
             )
 
         elif sit == 6:
@@ -864,20 +880,20 @@ The exact equations depend on the selected loading case.
             show_step(
                 "6a. End vertical reactions",
                 r"Y_{end}=\frac{M_x}{2\,dep},\quad Y_t=Y_b=Y_{end},\quad Y_m=0",
-                rf"Y_{{end}}=\frac{{{latex_num(Mx_lbf_in)}}}{{2({latex_num(dep_in)})}},\quad "
+                rf"Y_{{end}}=\frac{{{latex_num(disp_m(Mx_lbf_in))}}}{{2({latex_num(disp_l(dep_in))})}},\quad "
                 rf"Y_t=Y_b=Y_{{end}},\quad Y_m=0",
-                rf"Y_t={latex_num(solid['forces']['Yt'])}\ \text{{lbf}},\quad "
-                rf"Y_m={latex_num(solid['forces']['Ym'])}\ \text{{lbf}},\quad "
-                rf"Y_b={latex_num(solid['forces']['Yb'])}\ \text{{lbf}}"
+                rf"Y_t={latex_num(disp_f(solid['forces']['Yt']))}\ \text{{{fu}}},\quad "
+                rf"Y_m={latex_num(disp_f(solid['forces']['Ym']))}\ \text{{{fu}}},\quad "
+                rf"Y_b={latex_num(disp_f(solid['forces']['Yb']))}\ \text{{{fu}}}"
             )
 
             show_step(
                 "6b. Horizontal reactions",
                 r"X_t=X_m=X_b=0",
                 r"X_t=X_m=X_b=0",
-                rf"X_t={latex_num(solid['forces']['Xt'])}\ \text{{lbf}},\quad "
-                rf"X_m={latex_num(solid['forces']['Xm'])}\ \text{{lbf}},\quad "
-                rf"X_b={latex_num(solid['forces']['Xb'])}\ \text{{lbf}}"
+                rf"X_t={latex_num(disp_f(solid['forces']['Xt']))}\ \text{{{fu}}},\quad "
+                rf"X_m={latex_num(disp_f(solid['forces']['Xm']))}\ \text{{{fu}}},\quad "
+                rf"X_b={latex_num(disp_f(solid['forces']['Xb']))}\ \text{{{fu}}}"
             )
 
         elif sit == 7:
@@ -886,42 +902,42 @@ The exact equations depend on the selected loading case.
             show_step(
                 "6a. Shared denominator",
                 r"D=L^2\cos^2\theta+dep^2",
-                rf"D=({latex_num(L_pin_in)})^2\cos^2({latex_num(theta_deg)})+({latex_num(dep_in)})^2",
-                rf"D={latex_num(L_pin_in**2 * (math.cos(math.radians(theta_deg))**2) + dep_in**2)}"
+                rf"D=({latex_num(disp_l(L_pin_in))})^2\cos^2({latex_num(theta_deg)})+({latex_num(disp_l(dep_in))})^2",
+                rf"D={latex_num(disp_l(L_pin_in)**2 * (math.cos(math.radians(theta_deg))**2) + disp_l(dep_in)**2)}"
             )
 
             show_step(
                 "6b. Horizontal end reactions",
                 r"X=\frac{M_y\,dep}{2\left(L^2\cos^2\theta+dep^2\right)},\quad X_t=X_b=X,\quad X_m=0",
-                rf"X=\frac{{{latex_num(My_lbf_in)}({latex_num(dep_in)})}}{{2\left(({latex_num(L_pin_in)})^2\cos^2({latex_num(theta_deg)})+({latex_num(dep_in)})^2\right)}},\quad "
+                rf"X=\frac{{{latex_num(disp_m(My_lbf_in))}({latex_num(disp_l(dep_in))})}}{{2\left(({latex_num(disp_l(L_pin_in))})^2\cos^2({latex_num(theta_deg)})+({latex_num(disp_l(dep_in))})^2\right)}},\quad "
                 rf"X_t=X_b=X,\quad X_m=0",
-                rf"X_t={latex_num(solid['forces']['Xt'])}\ \text{{lbf}},\quad "
-                rf"X_m={latex_num(solid['forces']['Xm'])}\ \text{{lbf}},\quad "
-                rf"X_b={latex_num(solid['forces']['Xb'])}\ \text{{lbf}}"
+                rf"X_t={latex_num(disp_f(solid['forces']['Xt']))}\ \text{{{fu}}},\quad "
+                rf"X_m={latex_num(disp_f(solid['forces']['Xm']))}\ \text{{{fu}}},\quad "
+                rf"X_b={latex_num(disp_f(solid['forces']['Xb']))}\ \text{{{fu}}}"
             )
 
             show_step(
                 "6c. Vertical reactions",
                 r"Y_t=Y_m=Y_b=0",
                 r"Y_t=Y_m=Y_b=0",
-                rf"Y_t={latex_num(solid['forces']['Yt'])}\ \text{{lbf}},\quad "
-                rf"Y_m={latex_num(solid['forces']['Ym'])}\ \text{{lbf}},\quad "
-                rf"Y_b={latex_num(solid['forces']['Yb'])}\ \text{{lbf}}"
+                rf"Y_t={latex_num(disp_f(solid['forces']['Yt']))}\ \text{{{fu}}},\quad "
+                rf"Y_m={latex_num(disp_f(solid['forces']['Ym']))}\ \text{{{fu}}},\quad "
+                rf"Y_b={latex_num(disp_f(solid['forces']['Yb']))}\ \text{{{fu}}}"
             )
 
         st.markdown("#### 7. Reaction forces used by the solid member calculation")
         forces = solid["forces"]
         statics_df = pd.DataFrame([
-            {"Quantity": "Xt", "Value": fmt_sig(forces["Xt"]), "Unit": "lbf"},
-            {"Quantity": "Yt", "Value": fmt_sig(forces["Yt"]), "Unit": "lbf"},
-            {"Quantity": "Xm", "Value": fmt_sig(forces["Xm"]), "Unit": "lbf"},
-            {"Quantity": "Ym", "Value": fmt_sig(forces["Ym"]), "Unit": "lbf"},
-            {"Quantity": "Xb", "Value": fmt_sig(forces["Xb"]), "Unit": "lbf"},
-            {"Quantity": "Yb", "Value": fmt_sig(forces["Yb"]), "Unit": "lbf"},
-            {"Quantity": "Max |V|", "Value": fmt_sig(solid["V_abs_max_lbf"]), "Unit": "lbf"},
-            {"Quantity": "Max |M|", "Value": fmt_sig(solid["M_abs_max_lbf_in"]), "Unit": "lbf·in"},
+            {"Quantity": "Xt", "Value": fmt_sig(disp_f(forces["Xt"])), "Unit": fu},
+            {"Quantity": "Yt", "Value": fmt_sig(disp_f(forces["Yt"])), "Unit": fu},
+            {"Quantity": "Xm", "Value": fmt_sig(disp_f(forces["Xm"])), "Unit": fu},
+            {"Quantity": "Ym", "Value": fmt_sig(disp_f(forces["Ym"])), "Unit": fu},
+            {"Quantity": "Xb", "Value": fmt_sig(disp_f(forces["Xb"])), "Unit": fu},
+            {"Quantity": "Yb", "Value": fmt_sig(disp_f(forces["Yb"])), "Unit": fu},
+            {"Quantity": "Max |V|", "Value": fmt_sig(disp_f(solid["V_abs_max_lbf"])), "Unit": fu},
+            {"Quantity": "Max |M|", "Value": fmt_sig(disp_m(solid["M_abs_max_lbf_in"])), "Unit": mu},
             {"Quantity": "Member mass", "Value": fmt_sig(solid["mass_kg"]), "Unit": "kg"},
-            {"Quantity": "Pin span used", "Value": fmt_sig(solid["L_pin_in"]), "Unit": "in"},
+            {"Quantity": "Pin span used", "Value": fmt_sig(disp_l(solid["L_pin_in"])), "Unit": lu},
         ])
         st.dataframe(statics_df, use_container_width=True, hide_index=True)
 
@@ -944,36 +960,36 @@ The largest absolute internal shear force and bending moment from the statics so
         show_step(
             "8. Total x-force from the solved reactions",
             r"F_x = X_t + X_m + X_b",
-            rf"F_x = {latex_num(forces['Xt'])}+{latex_num(forces['Xm'])}+{latex_num(forces['Xb'])}",
-            rf"F_x = {latex_num(Fx_total_lbf)}\ \text{{lbf}}"
+            rf"F_x = {latex_num(disp_f(forces['Xt']))}+{latex_num(disp_f(forces['Xm']))}+{latex_num(disp_f(forces['Xb']))}",
+            rf"F_x = {latex_num(disp_f(Fx_total_lbf))}\ \text{{{fu}}}"
         )
 
         show_step(
             "9. Total y-force from the solved reactions",
             r"F_y = Y_t + Y_m + Y_b",
-            rf"F_y = {latex_num(forces['Yt'])}+{latex_num(forces['Ym'])}+{latex_num(forces['Yb'])}",
-            rf"F_y = {latex_num(Fy_total_lbf)}\ \text{{lbf}}"
+            rf"F_y = {latex_num(disp_f(forces['Yt']))}+{latex_num(disp_f(forces['Ym']))}+{latex_num(disp_f(forces['Yb']))}",
+            rf"F_y = {latex_num(disp_f(Fy_total_lbf))}\ \text{{{fu}}}"
         )
 
         show_step(
             "10. Axial force along the member",
             r"T = F_x\cos\theta + F_y\sin\theta",
-            rf"T = ({latex_num(Fx_total_lbf)})\cos({latex_num(theta_deg)}) + ({latex_num(Fy_total_lbf)})\sin({latex_num(theta_deg)})",
-            rf"T = {latex_num(axial_force_lbf)}\ \text{{lbf}} = {latex_num(axial_force_N)}\ \text{{N}}"
+            rf"T = ({latex_num(disp_f(Fx_total_lbf))})\cos({latex_num(theta_deg)}) + ({latex_num(disp_f(Fy_total_lbf))})\sin({latex_num(theta_deg)})",
+            rf"T = {latex_num(disp_f(axial_force_lbf))}\ \text{{{fu}}}"
         )
 
         show_step(
             "11. Maximum internal shear used in the shear-stress calculation",
             r"V_{max} = \max |V(x)|",
             r"\text{The statics solution evaluates }V(x)\text{ along the member and keeps the largest absolute value.}",
-            rf"V_{{max}} = {latex_num(solid['V_abs_max_lbf'])}\ \text{{lbf}}"
+            rf"V_{{max}} = {latex_num(disp_f(solid['V_abs_max_lbf']))}\ \text{{{fu}}}"
         )
 
         show_step(
             "12. Maximum internal bending moment used in the bending-stress calculation",
             r"M_{max} = \max |M(x)|",
             r"\text{The statics solution evaluates }M(x)\text{ along the member and keeps the largest absolute value.}",
-            rf"M_{{max}} = {latex_num(solid['M_abs_max_lbf_in'])}\ \text{{lbf·in}}"
+            rf"M_{{max}} = {latex_num(disp_m(solid['M_abs_max_lbf_in']))}\ \text{{{mu}}}"
         )
 
         # ---------- Shear & Moment Diagrams ----------
@@ -1032,21 +1048,23 @@ The largest absolute internal shear force and bending moment from the statics so
             spine.set_edgecolor("#cccccc")
 
         fig_vm.tight_layout(pad=1.2)
-        st.pyplot(fig_vm, use_container_width=True)
+        left_spacer, plot_col, right_spacer = st.columns([1.6, 3.0, 1.6])
+        with plot_col:
+            st.pyplot(fig_vm, use_container_width=True)
         plt.close(fig_vm)
 
         show_step(
             "13. Nominal axial stress",
             r"\sigma_{nom,P}=\frac{P}{A_{net}}",
             rf"\sigma_{{nom,P}}=\frac{{{latex_num(axial_force_N)}}}{{{latex_num(solid['A_net_report'])}}}",
-            rf"\sigma_{{nom,P}}={latex_num(solid['sigma_nom_P'])}\ \text{{Pa}}"
+            rf"\sigma_{{nom,P}}={latex_num(stress_from_Pa(solid['sigma_nom_P'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
         show_step(
             "14. Maximum axial stress",
             r"\sigma_{max,P}=K_t\,\sigma_{nom,P}",
-            rf"\sigma_{{max,P}}=({latex_num(Kt_P)})({latex_num(solid['sigma_nom_P'])})",
-            rf"\sigma_{{max,P}}={latex_num(solid['sigma_max_P'])}\ \text{{Pa}}"
+            rf"\sigma_{{max,P}}=({latex_num(Kt_P)})({latex_num(stress_from_Pa(solid['sigma_nom_P'], stress_unit))})",
+            rf"\sigma_{{max,P}}={latex_num(stress_from_Pa(solid['sigma_max_P'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
         max_moment_Nm = solid["M_abs_max_lbf_in"] * 4.44822 * 0.0254
@@ -1054,21 +1072,21 @@ The largest absolute internal shear force and bending moment from the statics so
             "15. Nominal bending stress",
             r"\sigma_{nom,M}=\frac{M}{S}",
             rf"\sigma_{{nom,M}}=\frac{{{latex_num(max_moment_Nm)}}}{{{latex_num(solid['S_report'])}}}",
-            rf"\sigma_{{nom,M}}={latex_num(solid['sigma_nom_M'])}\ \text{{Pa}}"
+            rf"\sigma_{{nom,M}}={latex_num(stress_from_Pa(solid['sigma_nom_M'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
         show_step(
             "16. Maximum bending stress",
             r"\sigma_{max,M}=K_{t,M}\,\sigma_{nom,M}",
-            rf"\sigma_{{max,M}}=(2.00)({latex_num(solid['sigma_nom_M'])})",
-            rf"\sigma_{{max,M}}={latex_num(solid['sigma_max_M'])}\ \text{{Pa}}"
+            rf"\sigma_{{max,M}}=(2.00)({latex_num(stress_from_Pa(solid['sigma_nom_M'], stress_unit))})",
+            rf"\sigma_{{max,M}}={latex_num(stress_from_Pa(solid['sigma_max_M'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
         show_step(
             "17. Combined normal stress",
             r"\sigma=\sigma_{max,P}+\sigma_{max,M}",
-            rf"\sigma=({latex_num(solid['sigma_max_P'])})+({latex_num(solid['sigma_max_M'])})",
-            rf"\sigma={latex_num(solid['sigma_comb'])}\ \text{{Pa}}"
+            rf"\sigma=({latex_num(stress_from_Pa(solid['sigma_max_P'], stress_unit))})+({latex_num(stress_from_Pa(solid['sigma_max_M'], stress_unit))})",
+            rf"\sigma={latex_num(stress_from_Pa(solid['sigma_comb'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
         max_shear_N = solid["V_abs_max_lbf"] * 4.44822
@@ -1076,20 +1094,20 @@ The largest absolute internal shear force and bending moment from the statics so
             "18. Maximum shear stress",
             r"\tau=K_{t,\tau}\left(\frac{V}{A_{shear}}\right)",
             rf"\tau=(2.00)\left(\frac{{{latex_num(max_shear_N)}}}{{{latex_num(solid['A_shear_m2'])}}}\right)",
-            rf"\tau={latex_num(solid['tau_max'])}\ \text{{Pa}}"
+            rf"\tau={latex_num(stress_from_Pa(solid['tau_max'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
         show_step(
             "19. Von Mises stress",
             r"\sigma_{vm}=\sqrt{\sigma^2+3\tau^2}",
-            rf"\sigma_{{vm}}=\sqrt{{({latex_num(solid['sigma_comb'])})^2+3({latex_num(solid['tau_max'])})^2}}",
-            rf"\sigma_{{vm}}={latex_num(results['solid_sigma_vm'])}\ \text{{Pa}}"
+            rf"\sigma_{{vm}}=\sqrt{{({latex_num(stress_from_Pa(solid['sigma_comb'], stress_unit))})^2+3({latex_num(stress_from_Pa(solid['tau_max'], stress_unit))})^2}}",
+            rf"\sigma_{{vm}}={latex_num(stress_from_Pa(results['solid_sigma_vm'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
         show_step(
             "20. Safety factor",
             r"SF=\frac{S_y}{\sigma_{vm}}",
-            rf"SF=\frac{{{latex_num(Sy_Pa)}}}{{{latex_num(results['solid_sigma_vm'])}}}",
+            rf"SF=\frac{{{latex_num(stress_from_Pa(Sy_Pa, stress_unit))}}}{{{latex_num(stress_from_Pa(results['solid_sigma_vm'], stress_unit))}}}",
             rf"SF={latex_num(results['solid_SF'])}"
         )
 
