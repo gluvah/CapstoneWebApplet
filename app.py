@@ -342,7 +342,7 @@ with col_center:
             margin-top:0;
             margin-bottom:1rem;
             font-family:"Cherry Cream Soda", system-ui;'>
-        A transparent analysis tool for evaluating solid-member stresses and exploring lighter tube alternatives. Designed by Michael Glover with the help of Nathan Gustavson and Josh Kunkelll.
+        A transparent analysis tool for evaluating solid-member stresses and exploring lighter tube alternatives. Designed by Michael Glover with the help of Nathan Gustavson and Josh Kunkel.
         </p>
     """, unsafe_allow_html=True)
 
@@ -1013,7 +1013,7 @@ The largest absolute internal shear force and bending moment from the statics so
         red_dash = "#c0392b"
 
         fig_vm, (ax_v, ax_m) = plt.subplots(
-            2, 1, figsize=(8, 5), dpi=150, sharex=True,
+            2, 1, figsize=(10, 7), dpi=150, sharex=True,
             gridspec_kw={"hspace": 0.45}
         )
         fig_vm.patch.set_facecolor("#faf8f5")
