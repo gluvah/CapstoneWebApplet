@@ -64,6 +64,34 @@ def convert_density_local(value, unit):
         raise ValueError("Unsupported density unit")
 
 
+def force_from_lbf_local(value_lbf, unit):
+    factors = {
+        "lbf": 1.0,
+        "N": 4.44822,
+        "kN": 4.44822 / 1000.0,
+        "kip": 1.0 / 1000.0,
+    }
+    return value_lbf * factors[unit]
+
+
+def moment_from_lbf_in_local(value_lbf_in, unit):
+    if unit == "ft-lb":
+        return value_lbf_in / 12.0
+    elif unit == "Nm":
+        return value_lbf_in * 4.44822 * 0.0254
+    elif unit == "kNm":
+        return value_lbf_in * 4.44822 * 0.0254 / 1000.0
+    elif unit == "kip-ft":
+        return value_lbf_in / 12000.0
+    else:
+        raise ValueError("Unsupported moment unit")
+
+
+def length_from_in_local(value_in, unit):
+    value_m = value_in * 0.0254
+    return length_from_m(value_m, unit)
+
+
 # ---------- Theme / Fonts ----------
 st.markdown("""
 <style>
@@ -322,7 +350,7 @@ st.sidebar.caption("These selections control how inputs are entered and how fina
 
 length_unit = st.sidebar.selectbox("Length units used throughout the report", ["in", "mm", "cm", "m"], index=0)
 force_unit = st.sidebar.selectbox("Force units for applied loading", ["lbf", "N", "kN", "kip"], index=0)
-moment_unit = st.sidebar.selectbox("Moment units for overturning cases", ["lb-in", "ft-lb", "Nm", "kNm", "kip-ft"], index=0)
+moment_unit = st.sidebar.selectbox("Moment units for overturning cases", ["ft-lb", "Nm", "kNm", "kip-ft"], index=0)
 stress_unit = st.sidebar.selectbox("Stress units for displayed results", ["ksi", "MPa", "psi", "Pa"], index=0)
 density_unit = st.sidebar.selectbox("Material density units", ["kg/m3", "g/cm3", "lb/ft3", "lb/in3"], index=2)
 
@@ -631,7 +659,7 @@ try:
                 "Factor of safety": r["SF"],
             })
 
-        chart_df = pd.DataFrame(chart_rows)
+            chart_df = pd.DataFrame(chart_rows)
         x_col = f"Tube wall thickness, t ({length_unit})"
         chart = (
             alt.Chart(chart_df)
@@ -707,20 +735,20 @@ try:
             rf"K_t={latex_num(Kt_P)}"
         )
 
-        st.markdown("#### 3. Working values in the selected report units")
+        st.markdown("#### 3. Converted SI values")
         si_df = pd.DataFrame([
-            {"Quantity": "b", "Value": fmt_sig(b_val), "Unit": length_unit},
-            {"Quantity": "h", "Value": fmt_sig(h_val), "Unit": length_unit},
-            {"Quantity": "L", "Value": fmt_sig(L_val), "Unit": length_unit},
-            {"Quantity": "d", "Value": fmt_sig(d_val), "Unit": length_unit},
-            {"Quantity": "Edge offset", "Value": fmt_sig(edge_offset_val), "Unit": length_unit},
-            {"Quantity": "Density", "Value": fmt_sig(rho_val), "Unit": density_unit},
-            {"Quantity": "Yield strength", "Value": fmt_sig(Sy_val), "Unit": stress_unit},
-            {"Quantity": "P", "Value": fmt_sig(P_val), "Unit": force_unit},
-            {"Quantity": "Mz", "Value": fmt_sig(Mz_val), "Unit": moment_unit},
-            {"Quantity": "Mx", "Value": fmt_sig(Mx_val), "Unit": moment_unit},
-            {"Quantity": "My", "Value": fmt_sig(My_val), "Unit": moment_unit},
-            {"Quantity": "dep", "Value": fmt_sig(dep_val), "Unit": length_unit},
+            {"Quantity": "b", "Value": fmt_sig(b_m), "Unit": "m"},
+            {"Quantity": "h", "Value": fmt_sig(h_m), "Unit": "m"},
+            {"Quantity": "L", "Value": fmt_sig(L_m), "Unit": "m"},
+            {"Quantity": "d", "Value": fmt_sig(d_m), "Unit": "m"},
+            {"Quantity": "Edge offset", "Value": fmt_sig(edge_offset_m), "Unit": "m"},
+            {"Quantity": "Density", "Value": fmt_sig(rho_kg_m3), "Unit": "kg/m^3"},
+            {"Quantity": "Yield strength", "Value": fmt_sig(Sy_Pa), "Unit": "Pa"},
+            {"Quantity": "P", "Value": fmt_sig(P_N_user), "Unit": "N"},
+            {"Quantity": "Mz", "Value": fmt_sig(Mz_Nm), "Unit": "N·m"},
+            {"Quantity": "Mx", "Value": fmt_sig(Mx_Nm), "Unit": "N·m"},
+            {"Quantity": "My", "Value": fmt_sig(My_Nm), "Unit": "N·m"},
+            {"Quantity": "dep", "Value": fmt_sig(dep_m), "Unit": "m"},
         ])
         st.dataframe(si_df, use_container_width=True, hide_index=True)
 
@@ -813,9 +841,9 @@ The exact equations depend on the selected loading case.
             show_step(
                 "6a. Vertical reactions from applied moment",
                 r"Y_m=\frac{M_z}{L\cos\theta},\quad Y_t=\frac{M_z}{2L\cos\theta},\quad Y_b=\frac{M_z}{2L\cos\theta}",
-                rf"Y_m=\frac{{{latex_num(moment_from_lbf_in_local(Mz_lbf_in, moment_unit))}}}{{{latex_num(length_from_in_local(L_pin_in, length_unit))}\cos({latex_num(theta_deg)})}},\quad "
-                rf"Y_t=\frac{{{latex_num(moment_from_lbf_in_local(Mz_lbf_in, moment_unit))}}}{{2({latex_num(length_from_in_local(L_pin_in, length_unit))})\cos({latex_num(theta_deg)})}},\quad "
-                rf"Y_b=\frac{{{latex_num(moment_from_lbf_in_local(Mz_lbf_in, moment_unit))}}}{{2({latex_num(length_from_in_local(L_pin_in, length_unit))})\cos({latex_num(theta_deg)})}}",
+                rf"Y_m=\frac{{{latex_num(Mz_lbf_in)}}}{{{latex_num(L_pin_in)}\cos({latex_num(theta_deg)})}},\quad "
+                rf"Y_t=\frac{{{latex_num(Mz_lbf_in)}}}{{2({latex_num(L_pin_in)})\cos({latex_num(theta_deg)})}},\quad "
+                rf"Y_b=\frac{{{latex_num(Mz_lbf_in)}}}{{2({latex_num(L_pin_in)})\cos({latex_num(theta_deg)})}}",
                 rf"Y_m={latex_num(solid['forces']['Ym'])}\ \text{{lbf}},\quad "
                 rf"Y_t={latex_num(solid['forces']['Yt'])}\ \text{{lbf}},\quad "
                 rf"Y_b={latex_num(solid['forces']['Yb'])}\ \text{{lbf}}"
@@ -836,7 +864,7 @@ The exact equations depend on the selected loading case.
             show_step(
                 "6a. End vertical reactions",
                 r"Y_{end}=\frac{M_x}{2\,dep},\quad Y_t=Y_b=Y_{end},\quad Y_m=0",
-                rf"Y_{{end}}=\frac{{{latex_num(moment_from_lbf_in_local(Mx_lbf_in, moment_unit))}}}{{2({latex_num(length_from_in_local(dep_in, length_unit))})}},\quad "
+                rf"Y_{{end}}=\frac{{{latex_num(Mx_lbf_in)}}}{{2({latex_num(dep_in)})}},\quad "
                 rf"Y_t=Y_b=Y_{{end}},\quad Y_m=0",
                 rf"Y_t={latex_num(solid['forces']['Yt'])}\ \text{{lbf}},\quad "
                 rf"Y_m={latex_num(solid['forces']['Ym'])}\ \text{{lbf}},\quad "
@@ -858,14 +886,14 @@ The exact equations depend on the selected loading case.
             show_step(
                 "6a. Shared denominator",
                 r"D=L^2\cos^2\theta+dep^2",
-                rf"D=({latex_num(length_from_in_local(L_pin_in, length_unit))})^2\cos^2({latex_num(theta_deg)})+({latex_num(length_from_in_local(dep_in, length_unit))})^2",
+                rf"D=({latex_num(L_pin_in)})^2\cos^2({latex_num(theta_deg)})+({latex_num(dep_in)})^2",
                 rf"D={latex_num(L_pin_in**2 * (math.cos(math.radians(theta_deg))**2) + dep_in**2)}"
             )
 
             show_step(
                 "6b. Horizontal end reactions",
                 r"X=\frac{M_y\,dep}{2\left(L^2\cos^2\theta+dep^2\right)},\quad X_t=X_b=X,\quad X_m=0",
-                rf"X=\frac{{{latex_num(moment_from_lbf_in_local(My_lbf_in, moment_unit))}({latex_num(length_from_in_local(dep_in, length_unit))})}}{{2\left(({latex_num(length_from_in_local(L_pin_in, length_unit))})^2\cos^2({latex_num(theta_deg)})+({latex_num(length_from_in_local(dep_in, length_unit))})^2\right)}},\quad "
+                rf"X=\frac{{{latex_num(My_lbf_in)}({latex_num(dep_in)})}}{{2\left(({latex_num(L_pin_in)})^2\cos^2({latex_num(theta_deg)})+({latex_num(dep_in)})^2\right)}},\quad "
                 rf"X_t=X_b=X,\quad X_m=0",
                 rf"X_t={latex_num(solid['forces']['Xt'])}\ \text{{lbf}},\quad "
                 rf"X_m={latex_num(solid['forces']['Xm'])}\ \text{{lbf}},\quad "
@@ -884,16 +912,16 @@ The exact equations depend on the selected loading case.
         st.markdown("#### 7. Reaction forces used by the solid member calculation")
         forces = solid["forces"]
         statics_df = pd.DataFrame([
-            {"Quantity": "Xt", "Value": fmt_sig(force_from_lbf_local(forces["Xt"], force_unit)), "Unit": force_unit},
-            {"Quantity": "Yt", "Value": fmt_sig(force_from_lbf_local(forces["Yt"], force_unit)), "Unit": force_unit},
-            {"Quantity": "Xm", "Value": fmt_sig(force_from_lbf_local(forces["Xm"], force_unit)), "Unit": force_unit},
-            {"Quantity": "Ym", "Value": fmt_sig(force_from_lbf_local(forces["Ym"], force_unit)), "Unit": force_unit},
-            {"Quantity": "Xb", "Value": fmt_sig(force_from_lbf_local(forces["Xb"], force_unit)), "Unit": force_unit},
-            {"Quantity": "Yb", "Value": fmt_sig(force_from_lbf_local(forces["Yb"], force_unit)), "Unit": force_unit},
-            {"Quantity": "Max |V|", "Value": fmt_sig(force_from_lbf_local(solid["V_abs_max_lbf"], force_unit)), "Unit": force_unit},
-            {"Quantity": "Max |M|", "Value": fmt_sig(moment_from_lbf_in_local(solid["M_abs_max_lbf_in"], moment_unit)), "Unit": moment_unit},
+            {"Quantity": "Xt", "Value": fmt_sig(forces["Xt"]), "Unit": "lbf"},
+            {"Quantity": "Yt", "Value": fmt_sig(forces["Yt"]), "Unit": "lbf"},
+            {"Quantity": "Xm", "Value": fmt_sig(forces["Xm"]), "Unit": "lbf"},
+            {"Quantity": "Ym", "Value": fmt_sig(forces["Ym"]), "Unit": "lbf"},
+            {"Quantity": "Xb", "Value": fmt_sig(forces["Xb"]), "Unit": "lbf"},
+            {"Quantity": "Yb", "Value": fmt_sig(forces["Yb"]), "Unit": "lbf"},
+            {"Quantity": "Max |V|", "Value": fmt_sig(solid["V_abs_max_lbf"]), "Unit": "lbf"},
+            {"Quantity": "Max |M|", "Value": fmt_sig(solid["M_abs_max_lbf_in"]), "Unit": "lbf·in"},
             {"Quantity": "Member mass", "Value": fmt_sig(solid["mass_kg"]), "Unit": "kg"},
-            {"Quantity": "Pin span used", "Value": fmt_sig(length_from_in_local(solid["L_pin_in"], length_unit)), "Unit": length_unit},
+            {"Quantity": "Pin span used", "Value": fmt_sig(solid["L_pin_in"]), "Unit": "in"},
         ])
         st.dataframe(statics_df, use_container_width=True, hide_index=True)
 
@@ -956,14 +984,17 @@ The largest absolute internal shear force and bending moment from the statics so
             "used in the stress calculations above."
         )
 
-        xs_plot = solid["xs_in"]
-        V_plot  = solid["V_lbf"]
-        M_plot  = solid["M_lbf_in"]
+        xs_plot = [length_from_in_local(x, length_unit) for x in solid["xs_in"]]
+        V_plot = [force_from_lbf_local(v, force_unit) for v in solid["V_lbf"]]
+        M_plot = [moment_from_lbf_in_local(m, moment_unit) for m in solid["M_lbf_in"]]
 
-        purple      = "#5E2CA5"
+        V_peak = force_from_lbf_local(solid["V_abs_max_lbf"], force_unit)
+        M_peak = moment_from_lbf_in_local(solid["M_abs_max_lbf_in"], moment_unit)
+
+        purple = "#5E2CA5"
         purple_dark = "#450084"
-        gold        = "#C99700"
-        red_dash    = "#c0392b"
+        gold = "#C99700"
+        red_dash = "#c0392b"
 
         fig_vm, (ax_v, ax_m) = plt.subplots(
             2, 1, figsize=(8, 5), dpi=150, sharex=True,
@@ -976,10 +1007,9 @@ The largest absolute internal shear force and bending moment from the statics so
         ax_v.fill_between(xs_plot, V_plot, 0, alpha=0.18, color=purple)
         ax_v.plot(xs_plot, V_plot, color=purple_dark, linewidth=1.8)
         ax_v.axhline(0, color="#888888", linewidth=0.7, linestyle="--")
-        V_peak = solid["V_abs_max_lbf"]
-        ax_v.axhline( V_peak, color=red_dash, linewidth=0.9, linestyle="--", label=f"±{fmt_sig(V_peak)} lbf")
+        ax_v.axhline(V_peak, color=red_dash, linewidth=0.9, linestyle="--", label=f"±{fmt_sig(V_peak)} {force_unit}")
         ax_v.axhline(-V_peak, color=red_dash, linewidth=0.9, linestyle="--")
-        ax_v.set_ylabel("V  (lbf)", fontsize=9, color=purple_dark, fontweight="bold")
+        ax_v.set_ylabel(f"V  ({force_unit})", fontsize=9, color=purple_dark, fontweight="bold")
         ax_v.set_title("Shear Force Diagram  V(x)", fontsize=10, color=purple_dark, fontweight="bold", pad=6)
         ax_v.legend(fontsize=8, framealpha=0.7, loc="upper right")
         ax_v.tick_params(labelsize=8)
@@ -991,11 +1021,10 @@ The largest absolute internal shear force and bending moment from the statics so
         ax_m.fill_between(xs_plot, M_plot, 0, alpha=0.18, color=gold)
         ax_m.plot(xs_plot, M_plot, color="#b07d00", linewidth=1.8)
         ax_m.axhline(0, color="#888888", linewidth=0.7, linestyle="--")
-        M_peak = solid["M_abs_max_lbf_in"]
-        ax_m.axhline( M_peak, color=red_dash, linewidth=0.9, linestyle="--", label=f"±{fmt_sig(M_peak)} lbf·in")
+        ax_m.axhline(M_peak, color=red_dash, linewidth=0.9, linestyle="--", label=f"±{fmt_sig(M_peak)} {moment_unit}")
         ax_m.axhline(-M_peak, color=red_dash, linewidth=0.9, linestyle="--")
-        ax_m.set_ylabel("M  (lbf·in)", fontsize=9, color="#8a6200", fontweight="bold")
-        ax_m.set_xlabel("Position along member  x  (in)", fontsize=9, color="#444444")
+        ax_m.set_ylabel(f"M  ({moment_unit})", fontsize=9, color="#8a6200", fontweight="bold")
+        ax_m.set_xlabel(f"Position along member  x  ({length_unit})", fontsize=9, color="#444444")
         ax_m.set_title("Bending Moment Diagram  M(x)", fontsize=10, color="#8a6200", fontweight="bold", pad=6)
         ax_m.legend(fontsize=8, framealpha=0.7, loc="upper right")
         ax_m.tick_params(labelsize=8)
@@ -1003,7 +1032,9 @@ The largest absolute internal shear force and bending moment from the statics so
             spine.set_edgecolor("#cccccc")
 
         fig_vm.tight_layout(pad=1.2)
-        st.pyplot(fig_vm, use_container_width=True)
+        left_spacer, plot_col, right_spacer = st.columns([1.6, 3.0, 1.6])
+        with plot_col:
+            st.pyplot(fig_vm, use_container_width=True)
         plt.close(fig_vm)
 
         show_step(
