@@ -737,37 +737,34 @@ try:
             rf"K_t={latex_num(Kt_P)}"
         )
 
-        st.markdown("#### 3. Converted SI values")
-        si_df = pd.DataFrame([
-            {"Quantity": "b", "Value": fmt_sig(b_m), "Unit": "m"},
-            {"Quantity": "h", "Value": fmt_sig(h_m), "Unit": "m"},
-            {"Quantity": "L", "Value": fmt_sig(L_m), "Unit": "m"},
-            {"Quantity": "d", "Value": fmt_sig(d_m), "Unit": "m"},
-            {"Quantity": "Edge offset", "Value": fmt_sig(edge_offset_m), "Unit": "m"},
-            {"Quantity": "Density", "Value": fmt_sig(rho_kg_m3), "Unit": "kg/m^3"},
-            {"Quantity": "Yield strength", "Value": fmt_sig(Sy_Pa), "Unit": "Pa"},
-            {"Quantity": "P", "Value": fmt_sig(P_N_user), "Unit": "N"},
-            {"Quantity": "Mz", "Value": fmt_sig(Mz_Nm), "Unit": "N·m"},
-            {"Quantity": "Mx", "Value": fmt_sig(Mx_Nm), "Unit": "N·m"},
-            {"Quantity": "My", "Value": fmt_sig(My_Nm), "Unit": "N·m"},
-            {"Quantity": "dep", "Value": fmt_sig(dep_m), "Unit": "m"},
-        ])
-        st.dataframe(si_df, use_container_width=True, hide_index=True)
+        # Display-unit versions of geometry for steps 4 & 5
+        b_disp  = b_val
+        h_disp  = h_val
+        d_disp  = d_val
+        lu2     = length_unit          # e.g. "in"
+        lu2_sq  = f"{lu2}²"
+        lu2_cu  = f"{lu2}³"
+
+        # A_net and S_report are stored internally in m² / m³; convert to display length units
+        _m_per_lu = 0.0254 if lu2 == "in" else (0.001 if lu2 == "mm" else (0.01 if lu2 == "cm" else 1.0))
+        A_net_disp = solid['A_net_report'] / (_m_per_lu ** 2)
+        S_report_disp = solid['S_report'] / (_m_per_lu ** 3) if d_m > 0 else float("nan")
+        A_shear_disp  = solid['A_shear_m2'] / (_m_per_lu ** 2)
 
         show_step(
-            "4. Net area used for axial stress",
+            "3. Net area used for axial stress",
             r"A_{net}=(b-d)h",
-            rf"A_{{net}}=({latex_num(b_m)}-{latex_num(d_m)})({latex_num(h_m)})",
-            rf"A_{{net}}={latex_num(solid['A_net_report'])}\ \text{{m}}^2"
+            rf"A_{{net}}=({latex_num(b_disp)}-{latex_num(d_disp)})({latex_num(h_disp)})",
+            rf"A_{{net}}={latex_num(A_net_disp)}\ \text{{{lu2}}}^2"
         )
 
         if d_m > 0:
-            s_calc = ((b_m**3 - d_m**3) * h_m) / (6.0 * d_m)
+            s_calc_disp = ((b_disp**3 - d_disp**3) * h_disp) / (6.0 * d_disp)
             show_step(
-                "5. Section modulus used for bending",
+                "4. Section modulus used for bending",
                 r"S=\frac{(b^3-d^3)h}{6d}",
-                rf"S=\frac{{({latex_num(b_m)}^3-{latex_num(d_m)}^3)({latex_num(h_m)})}}{{6({latex_num(d_m)})}}",
-                rf"S={latex_num(s_calc)}\ \text{{m}}^3"
+                rf"S=\frac{{({latex_num(b_disp)}^3-{latex_num(d_disp)}^3)({latex_num(h_disp)})}}{{6({latex_num(d_disp)})}}",
+                rf"S={latex_num(s_calc_disp)}\ \text{{{lu2}}}^3"
             )
 
         st.markdown("### How the reaction forces are found for the selected loading case")
@@ -936,7 +933,7 @@ The exact equations depend on the selected loading case.
             {"Quantity": "Yb", "Value": fmt_sig(disp_f(forces["Yb"])), "Unit": fu},
             {"Quantity": "Max |V|", "Value": fmt_sig(disp_f(solid["V_abs_max_lbf"])), "Unit": fu},
             {"Quantity": "Max |M|", "Value": fmt_sig(disp_m(solid["M_abs_max_lbf_in"])), "Unit": mu},
-            {"Quantity": "Member mass", "Value": fmt_sig(solid["mass_kg"]), "Unit": "kg"},
+            {"Quantity": "Member mass", "Value": fmt_sig(solid["mass_kg"] * 2.20462), "Unit": "lb"},
             {"Quantity": "Pin span used", "Value": fmt_sig(disp_l(solid["L_pin_in"])), "Unit": lu},
         ])
         st.dataframe(statics_df, use_container_width=True, hide_index=True)
@@ -1056,7 +1053,7 @@ The largest absolute internal shear force and bending moment from the statics so
         show_step(
             "13. Nominal axial stress",
             r"\sigma_{nom,P}=\frac{P}{A_{net}}",
-            rf"\sigma_{{nom,P}}=\frac{{{latex_num(axial_force_N)}}}{{{latex_num(solid['A_net_report'])}}}",
+            rf"\sigma_{{nom,P}}=\frac{{{latex_num(disp_f(axial_force_lbf))}}}{{{latex_num(A_net_disp)}}}",
             rf"\sigma_{{nom,P}}={latex_num(stress_from_Pa(solid['sigma_nom_P'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
@@ -1067,11 +1064,10 @@ The largest absolute internal shear force and bending moment from the statics so
             rf"\sigma_{{max,P}}={latex_num(stress_from_Pa(solid['sigma_max_P'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
-        max_moment_Nm = solid["M_abs_max_lbf_in"] * 4.44822 * 0.0254
         show_step(
             "15. Nominal bending stress",
             r"\sigma_{nom,M}=\frac{M}{S}",
-            rf"\sigma_{{nom,M}}=\frac{{{latex_num(max_moment_Nm)}}}{{{latex_num(solid['S_report'])}}}",
+            rf"\sigma_{{nom,M}}=\frac{{{latex_num(disp_m(solid['M_abs_max_lbf_in']))}}}{{{latex_num(S_report_disp)}}}",
             rf"\sigma_{{nom,M}}={latex_num(stress_from_Pa(solid['sigma_nom_M'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
@@ -1089,11 +1085,10 @@ The largest absolute internal shear force and bending moment from the statics so
             rf"\sigma={latex_num(stress_from_Pa(solid['sigma_comb'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
-        max_shear_N = solid["V_abs_max_lbf"] * 4.44822
         show_step(
             "18. Maximum shear stress",
             r"\tau=K_{t,\tau}\left(\frac{V}{A_{shear}}\right)",
-            rf"\tau=(2.00)\left(\frac{{{latex_num(max_shear_N)}}}{{{latex_num(solid['A_shear_m2'])}}}\right)",
+            rf"\tau=(2.00)\left(\frac{{{latex_num(disp_f(solid['V_abs_max_lbf']))}}}{{{latex_num(A_shear_disp)}}}\right)",
             rf"\tau={latex_num(stress_from_Pa(solid['tau_max'], stress_unit))}\ \text{{{stress_unit}}}"
         )
 
