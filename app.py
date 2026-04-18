@@ -997,8 +997,8 @@ The largest absolute internal shear force and bending moment from the statics so
         red_dash = "#c0392b"
 
         fig_vm, (ax_v, ax_m) = plt.subplots(
-            2, 1, figsize=(8, 5), dpi=150, sharex=True,
-            gridspec_kw={"hspace": 0.45}
+            2, 1, figsize=(5.8, 3.6), dpi=150, sharex=True,
+            gridspec_kw={"hspace": 0.35}
         )
         fig_vm.patch.set_facecolor("#faf8f5")
 
